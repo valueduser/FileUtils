@@ -2,12 +2,9 @@
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 using System.Configuration;
-using System.Net;
 
 namespace FileUtils
 {
@@ -15,9 +12,8 @@ namespace FileUtils
 	{
 		private static NameValueCollection _appSettings;
 		private static Dictionary<string, FileUtils.File> _fileDictionary;
-		private static Dictionary<string, FileUtils.File> _dupeDictionary;
 
-		internal static void FindDuplicates()
+		internal static void FindDuplicates(string path)
 		{
 			//todo:
 			// 1). Read network share credentials from app settings
@@ -27,39 +23,65 @@ namespace FileUtils
 
 			// 2). Impersonate user or map network drive
 			// 3). loop through each file / directory recursively
-			//		3a). Hash
-			//		3b). Lookup in fileDictionary
-			//			If not present, add it
-			//			If is present, add to dupeDictionary and add itself to the list of dupes in fileDictionary
-			// 4). Report results
 
-			string filename = @"C:\Users\valueduser\Downloads\The Brand New Climbers Training Primer.pdf";
-			string hash = ToHex(HashFile(filename), false);
-			_dupeDictionary = new Dictionary<string, File>();
-			_dupeDictionary.Add(hash, new FileUtils.File() {Filename = filename, SizeInKB = 6, FullPath = filename, Hash = hash, Duplicates = new List<File>()});
+			Console.Write("Building a list of files...");
+			String[] fileArr = System.IO.Directory.GetFiles(path, "*.*", System.IO.SearchOption.AllDirectories);
+			Console.WriteLine("done.");
 
-			ReportToConsole();
-		}
+			_fileDictionary = new Dictionary<string, File>();
 
-		internal static string ReportToConsole()
-		{
-			StringBuilder sb = new StringBuilder();
-			sb.Append("File duplication identification completed");
-
-			if (_dupeDictionary.Count > 0)
+			Console.Write("Looking for duplicates...");
+			foreach (string file in fileArr)
 			{
-				foreach (var dupeFile in _dupeDictionary)
+				string hash = ToHex(HashFile(file), false);
+				string filename = Path.GetFileName(file);
+				float fileSize = (new System.IO.FileInfo(file).Length) / 1048576f; //match what the OS reports ¯\_(ツ)_/¯
+				if (!_fileDictionary.ContainsKey(hash))
 				{
+					_fileDictionary.Add(hash, new FileUtils.File() { Filename = filename, SizeInMB = fileSize, FullPath = file, Hash = hash, Duplicates = new List<string>() });
+				}
+				else
+				{
+					_fileDictionary[hash].Duplicates.Add(file);
+				}
+			}
+			Console.WriteLine("done.");
 
-					foreach (var dupe in dupeFile.Value.Duplicates)
+			foreach (var file in _fileDictionary)
+			{
+				if (file.Value.Duplicates.Count > 0)
+				{
+					Console.WriteLine($"\nMD5 Hash: {file.Key} is shared by the following files: ");
+					Console.WriteLine($"{file.Value.FullPath,-10}  {file.Value.SizeInMB:0.00} MB");
+					foreach (var dupe in file.Value.Duplicates)
 					{
-						Console.WriteLine(dupe.FullPath);
+						Console.WriteLine($"{dupe,-10}");
 					}
-					Console.WriteLine($"{dupeFile.Value.Filename}: \t {dupeFile.Key} \t {dupeFile.Value.SizeInKB} \t {dupeFile.Value.FullPath}");
 				}
 			}
 
-			return String.Empty;
+			Console.WriteLine("\nDONE.");
+	
+			//ReportResults();
+		}
+
+		internal static void ReportResults(bool toFile)
+		{
+			//todo
+			StringBuilder sb = new StringBuilder();
+			sb.Append("File duplication identification completed");
+
+			if (_fileDictionary.Count > 0)
+			{
+				foreach (var dupeFile in _fileDictionary)
+				{
+					foreach (var dupe in dupeFile.Value.Duplicates)
+					{
+						Console.WriteLine(dupe);
+					}
+					Console.WriteLine($"{dupeFile.Value.Filename}: \t {dupeFile.Key} \t {dupeFile.Value.SizeInMB} \t {dupeFile.Value.FullPath}");
+				}
+			}
 		}
 
 		private static byte[] HashFile(string filename)

@@ -16,9 +16,9 @@ namespace FileUtils
 
 		public static void DisplayMenu()
 		{
-			Console.WriteLine("============MENU============");
-			string filename = @"C:\Users\valueduser\Downloads";
-			DuplicateFind.FindDuplicates();
+			Console.WriteLine("============ File Utilities ============");
+			string path = @"C:\Users\valueduser\Downloads\";
+			DuplicateFind.FindDuplicates(path);
 
 			Console.ReadKey();
 		}
