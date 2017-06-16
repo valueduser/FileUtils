@@ -22,7 +22,6 @@ namespace FileUtils
 			string pass = _appSettings["NetworkSharePassword"] ?? "Password Not Found";
 
 			// 2). Impersonate user or map network drive
-			// 3). loop through each file / directory recursively
 
 			Console.Write("Building a list of files...");
 			String[] fileArr = System.IO.Directory.GetFiles(path, "*.*", System.IO.SearchOption.AllDirectories);
@@ -47,41 +46,34 @@ namespace FileUtils
 			}
 			Console.WriteLine("done.");
 
+			ReportResults();
+			Console.WriteLine("\nDONE.");
+		}
+
+		internal static void ReportResults()
+		{
+			StringBuilder sb = new StringBuilder();
+			sb.Append("========= DUPLICATE FILE RESULTS =========\n\n");
+
 			foreach (var file in _fileDictionary)
 			{
 				if (file.Value.Duplicates.Count > 0)
 				{
-					Console.WriteLine($"\nMD5 Hash: {file.Key} is shared by the following files: ");
-					Console.WriteLine($"{file.Value.FullPath,-10}  {file.Value.SizeInMB:0.00} MB");
+					sb.Append($"MD5 Hash: {file.Key} ({file.Value.SizeInMB:0.00} MB) is shared by the following files: \n");
+					sb.Append($"{file.Value.FullPath,-10}\n");
 					foreach (var dupe in file.Value.Duplicates)
 					{
-						Console.WriteLine($"{dupe,-10}");
+						sb.Append($"\t{dupe,-10}\n");
 					}
+					sb.Append("\n");
 				}
 			}
 
-			Console.WriteLine("\nDONE.");
-	
-			//ReportResults();
-		}
-
-		internal static void ReportResults(bool toFile)
-		{
-			//todo
-			StringBuilder sb = new StringBuilder();
-			sb.Append("File duplication identification completed");
-
-			if (_fileDictionary.Count > 0)
-			{
-				foreach (var dupeFile in _fileDictionary)
-				{
-					foreach (var dupe in dupeFile.Value.Duplicates)
-					{
-						Console.WriteLine(dupe);
-					}
-					Console.WriteLine($"{dupeFile.Value.Filename}: \t {dupeFile.Key} \t {dupeFile.Value.SizeInMB} \t {dupeFile.Value.FullPath}");
-				}
-			}
+			string pwd = Path.GetFullPath(@".\");
+			string outputFileName = $"Dupes_{DateTime.UtcNow.Month}.{DateTime.UtcNow.Day}.{DateTime.UtcNow.Year}-{DateTime.UtcNow.Hour}_{DateTime.UtcNow.Minute}";
+			Console.WriteLine($"Writing report file to {pwd + outputFileName}.txt");
+			sb.Append("\n========= END =========");
+			System.IO.File.WriteAllText(pwd + outputFileName + ".txt", sb.ToString());
 		}
 
 		private static byte[] HashFile(string filename)
