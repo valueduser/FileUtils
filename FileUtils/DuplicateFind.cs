@@ -10,19 +10,51 @@ namespace FileUtils
 {
 	public class DuplicateFind
 	{
-		private static NameValueCollection _appSettings;
-		private static Dictionary<string, FileUtils.File> _fileDictionary;
+		private NameValueCollection _appSettings;
+		private Dictionary<string, FileUtils.File> _fileDictionary;
 
-		internal static void FindDuplicates(string path)
+		public void DisplayMenu()
 		{
-			//todo:
-			// 1). Read network share credentials from app settings
+			Console.WriteLine("============ File Utilities ============");
+
 			SafeGetAppConfigs();
 			string user = _appSettings["NetworkShareUser"] ?? "User Not Found";
 			string pass = _appSettings["NetworkSharePassword"] ?? "Password Not Found";
+			string path = _appSettings["NetworkShareUncPath"] ?? "UNC Path Not Found";
 
-			// 2). Impersonate user or map network drive
 
+			using (UNCAccessWithCredentials.UNCAccessWithCredentials unc = new UNCAccessWithCredentials.UNCAccessWithCredentials())
+			{
+				if (unc.NetUseWithCredentials(path, user, "WORKGROUP", pass))
+				{
+					FindDuplicates(path);
+				}
+				else
+				{
+					Console.WriteLine($"Failed to connect to UNC location Error: {unc.LastError}.");
+					switch (unc.LastError)
+					{
+						case 1326:
+							Console.WriteLine("Login failure.");
+							break;
+						case 86:
+							Console.WriteLine("Access denied.");
+							break;
+						case 87:
+							Console.WriteLine("Invalid parameter.");
+							break;
+						default:
+							Console.WriteLine("Unknown error.");
+							break;
+					}
+				}
+			}
+
+			Console.ReadKey();
+		}
+
+		internal void FindDuplicates(string path)
+		{
 			Console.Write("Building a list of files...");
 			String[] fileArr = System.IO.Directory.GetFiles(path, "*.*", System.IO.SearchOption.AllDirectories);
 			Console.WriteLine("done.");
@@ -50,7 +82,7 @@ namespace FileUtils
 			Console.WriteLine("\nDONE.");
 		}
 
-		internal static void ReportResults()
+		internal void ReportResults()
 		{
 			StringBuilder sb = new StringBuilder();
 			sb.Append("========= DUPLICATE FILE RESULTS =========\n\n");
@@ -76,7 +108,7 @@ namespace FileUtils
 			System.IO.File.WriteAllText(pwd + outputFileName + ".txt", sb.ToString());
 		}
 
-		private static byte[] HashFile(string filename)
+		private byte[] HashFile(string filename)
 		{
 			using (var md5 = MD5.Create())
 			{
@@ -87,13 +119,13 @@ namespace FileUtils
 			}
 		}
 
-		private static void SafeGetAppConfigs()
+		private void SafeGetAppConfigs()
 		{
 			_appSettings = ConfigurationManager.AppSettings;
 			
 		}
 
-		private static string ToHex(byte[] bytes, bool upperCase)
+		private string ToHex(byte[] bytes, bool upperCase)
 		{
 			StringBuilder result = new StringBuilder(bytes.Length * 2);
 
