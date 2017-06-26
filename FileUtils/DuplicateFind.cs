@@ -35,13 +35,13 @@ namespace FileUtils
 					switch (unc.LastError)
 					{
 						case 1326:
-							Console.WriteLine("Login failure.");
+							Console.WriteLine("Login failure: The user name or password is incorrect.");
 							break;
 						case 86:
-							Console.WriteLine("Access denied.");
+							Console.WriteLine("Access denied: The specified network password is not correct.");
 							break;
 						case 87:
-							Console.WriteLine("Invalid parameter.");
+							Console.WriteLine("Invalid parameter: The parameter is incorrect.");
 							break;
 						default:
 							Console.WriteLine("Unknown error.");
@@ -122,7 +122,6 @@ namespace FileUtils
 		private void SafeGetAppConfigs()
 		{
 			_appSettings = ConfigurationManager.AppSettings;
-			
 		}
 
 		private string ToHex(byte[] bytes, bool upperCase)
