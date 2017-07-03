@@ -20,18 +20,18 @@ namespace FileUtils
 			SafeGetAppConfigs();
 			string user = _appSettings["NetworkShareUser"] ?? "User Not Found";
 			string pass = _appSettings["NetworkSharePassword"] ?? "Password Not Found";
+			string domain = _appSettings["NetworkShareDomain"] ?? "Domain Not Found";
 			string path = _appSettings["NetworkShareUncPath"] ?? "UNC Path Not Found";
-
 
 			using (UNCAccessWithCredentials.UNCAccessWithCredentials unc = new UNCAccessWithCredentials.UNCAccessWithCredentials())
 			{
-				if (unc.NetUseWithCredentials(path, user, "WORKGROUP", pass))
+				if (unc.NetUseWithCredentials(path, user, domain, pass))
 				{
 					FindDuplicates(path);
 				}
 				else
 				{
-					Console.WriteLine($"Failed to connect to UNC location Error: {unc.LastError}.");
+					Console.WriteLine($"Failed to connect to UNC location. Error: {unc.LastError}.");
 					switch (unc.LastError)
 					{
 						case 1326:
@@ -41,7 +41,7 @@ namespace FileUtils
 							Console.WriteLine("Access denied: The specified network password is not correct.");
 							break;
 						case 87:
-							Console.WriteLine("Invalid parameter: The parameter is incorrect.");
+							Console.WriteLine("Invalid parameter.");
 							break;
 						default:
 							Console.WriteLine("Unknown error.");
@@ -58,15 +58,19 @@ namespace FileUtils
 			Console.Write("Building a list of files...");
 			String[] fileArr = System.IO.Directory.GetFiles(path, "*.*", System.IO.SearchOption.AllDirectories);
 			Console.WriteLine("done.");
+			int filesFound = fileArr.Length;
+			Console.WriteLine($"Found {filesFound} files.");
 
 			_fileDictionary = new Dictionary<string, File>();
 
 			Console.Write("Looking for duplicates...");
+			int progress = 0;
 			foreach (string file in fileArr)
 			{
 				string hash = ToHex(HashFile(file), false);
 				string filename = Path.GetFileName(file);
 				float fileSize = (new System.IO.FileInfo(file).Length) / 1048576f; //match what the OS reports ¯\_(ツ)_/¯
+
 				if (!_fileDictionary.ContainsKey(hash))
 				{
 					_fileDictionary.Add(hash, new FileUtils.File() { Filename = filename, SizeInMB = fileSize, FullPath = file, Hash = hash, Duplicates = new List<string>() });
@@ -74,6 +78,12 @@ namespace FileUtils
 				else
 				{
 					_fileDictionary[hash].Duplicates.Add(file);
+				}
+
+				progress++;
+				if (((double)progress / (double)filesFound) % 100 == 0.00)
+				{
+					Console.WriteLine($"{(progress / filesFound) * 100} %");
 				}
 			}
 			Console.WriteLine("done.");
