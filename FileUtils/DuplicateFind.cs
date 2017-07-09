@@ -49,7 +49,6 @@ namespace FileUtils
 					}
 				}
 			}
-
 			Console.ReadKey();
 		}
 
@@ -62,14 +61,30 @@ namespace FileUtils
 			Console.WriteLine($"Found {filesFound} files.");
 
 			_fileDictionary = new Dictionary<string, File>();
-
 			Console.Write("Looking for duplicates...");
-			int progress = 0;
-			foreach (string file in fileArr)
+
+			for (int i = 0; i < fileArr.Length; i++)
 			{
+				string file = fileArr[i];
+				string filename;
+				float fileSize;
+				try
+				{
+					filename = Path.GetFileName(file);
+					fileSize = (new System.IO.FileInfo(file).Length) / 1048576f; //match what the OS reports ¯\_(ツ)_/¯
+				}
+				catch (Exception e)
+				{
+					Console.WriteLine($"Error in path: {file}. {e}");
+					continue;
+				}
+				if (fileSize > 2097152)
+				{
+					Console.WriteLine($"File {filename} too large to hash. {fileSize}");
+					continue;
+				}
+
 				string hash = ToHex(HashFile(file), false);
-				string filename = Path.GetFileName(file);
-				float fileSize = (new System.IO.FileInfo(file).Length) / 1048576f; //match what the OS reports ¯\_(ツ)_/¯
 
 				if (!_fileDictionary.ContainsKey(hash))
 				{
@@ -79,14 +94,7 @@ namespace FileUtils
 				{
 					_fileDictionary[hash].Duplicates.Add(file);
 				}
-
-				progress++;
-				if (((double)progress / (double)filesFound) % 100 == 0.00)
-				{
-					Console.WriteLine($"{(progress / filesFound) * 100} %");
-				}
 			}
-			Console.WriteLine("done.");
 
 			ReportResults();
 			Console.WriteLine("\nDONE.");
@@ -122,9 +130,17 @@ namespace FileUtils
 		{
 			using (var md5 = MD5.Create())
 			{
-				using (var stream = System.IO.File.OpenRead(filename))
+				try
 				{
-					return md5.ComputeHash(stream);
+					using (var stream = System.IO.File.OpenRead(filename))
+					{
+						return md5.ComputeHash(stream);
+					}
+				}
+				catch (Exception e)
+				{
+					Console.WriteLine($"Error hasing {filename}: {e}");
+					return new byte[] {};
 				}
 			}
 		}
