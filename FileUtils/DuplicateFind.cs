@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
@@ -147,7 +147,19 @@ namespace FileUtils
 
 		private void SafeGetAppConfigs()
 		{
-			_appSettings = ConfigurationManager.AppSettings;
+            try
+            {
+                _appSettings = ConfigurationManager.AppSettings;
+            }
+            catch (ConfigurationErrorsException ex)
+            {
+                Console.WriteLine("Unable to read from configurations.");
+            }
+
+            if(_appSettings == null || _appSettings.Count == 0)
+            {
+                throw new System.ArgumentException("Unable to retrieve configuration values from the app.config file. ");
+            }
 		}
 
 		private string ToHex(byte[] bytes, bool upperCase)
