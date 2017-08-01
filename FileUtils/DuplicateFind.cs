@@ -1,27 +1,27 @@
 ﻿﻿﻿using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
-using System.Configuration;
 
 namespace FileUtils
 {
 	public class DuplicateFind
 	{
-		private NameValueCollection _appSettings;
 		private Dictionary<string, FileUtils.File> _fileDictionary;
 
 		public void DisplayMenu()
 		{
 			Console.WriteLine("============ File Utilities ============");
 
-			SafeGetAppConfigs();
-			string user = _appSettings["NetworkShareUser"] ?? "User Not Found";
-			string pass = _appSettings["NetworkSharePassword"] ?? "Password Not Found";
-			string domain = _appSettings["NetworkShareDomain"] ?? "Domain Not Found";
-			string path = _appSettings["NetworkShareUncPath"] ?? "UNC Path Not Found";
+            AppConfigManager appConfigMgr = new AppConfigManager();
+            AppConfig appConfigs = appConfigMgr.SafeGetAppConfigs();
+            string user = appConfigs.User;
+            string pass = appConfigs.Pass;
+            string domain = appConfigs.Domain;
+            string path = appConfigs.Path;
+            bool isLocalFs = appConfigs.IsLocalFileSystem;
+            string dbConnectionString = appConfigs.DBConnectionString;
 
 			using (UNCAccessWithCredentials.UNCAccessWithCredentials unc = new UNCAccessWithCredentials.UNCAccessWithCredentials())
 			{
@@ -143,23 +143,6 @@ namespace FileUtils
 					return new byte[] {};
 				}
 			}
-		}
-
-		private void SafeGetAppConfigs()
-		{
-            try
-            {
-                _appSettings = ConfigurationManager.AppSettings;
-            }
-            catch (ConfigurationErrorsException ex)
-            {
-                Console.WriteLine("Unable to read from configurations.");
-            }
-
-            if(_appSettings == null || _appSettings.Count == 0)
-            {
-                throw new System.ArgumentException("Unable to retrieve configuration values from the app.config file. ");
-            }
 		}
 
 		private string ToHex(byte[] bytes, bool upperCase)
