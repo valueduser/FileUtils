@@ -20,8 +20,8 @@ namespace FileUtil.Service.ServiceInterfaces
 			FindDuplicatesJob job = new FindDuplicatesJob(SafeGetAppConfigs());
 			
 			//Call into core
-			FileUtil.Core.FindDuplicates findDuplicates = new FindDuplicates();
-			findDuplicates.Run(job);
+			FileUtil.Core.DuplicateFinder dupeFinder = new DuplicateFinder();
+			dupeFinder.RunJob(job);
 		}
 
 		private NameValueCollection SafeGetAppConfigs()
