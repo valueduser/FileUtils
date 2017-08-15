@@ -18,9 +18,10 @@ namespace FileUtil.Service.ServiceInterfaces
 			//Read app config options or //todo console selections
 			//Create new FDJ object 
 			FindDuplicatesJob job = new FindDuplicatesJob(SafeGetAppConfigs());
+			
+			//Call into core
 			FileUtil.Core.FindDuplicates findDuplicates = new FindDuplicates();
 			findDuplicates.Run(job);
-			//Call into core
 		}
 
 		private NameValueCollection SafeGetAppConfigs()
