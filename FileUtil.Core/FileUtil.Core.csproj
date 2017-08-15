@@ -43,6 +43,12 @@
     <Compile Include="FindDuplicates.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FileUtil.Models\FileUtil.Models.csproj">
+      <Project>{233C164D-D049-4ADB-973B-8540ABF3B865}</Project>
+      <Name>FileUtil.Models</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -1,16 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Specialized;
 
-namespace FileUtil.Service
+namespace FileUtil.Models
 {
 	public class FindDuplicatesJob
 	{
 		public string Path;
-		public string[] filesArr;
+		public string[] FilesArr;
 		public FindDuplicateOptions Options;
 		private NameValueCollection _appSettings;
 
@@ -18,6 +13,7 @@ namespace FileUtil.Service
 		{
 			this._appSettings = appSettings;
 			Options = new FindDuplicateOptions(appSettings);
+			Path = Options.Path;
 		}
 
 
