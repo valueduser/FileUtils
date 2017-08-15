@@ -8,8 +8,6 @@ namespace FileUtils
 		{
 			FindDuplicateFilesService dupe = new FindDuplicateFilesService();
 			dupe.FindDuplicates();
-			//DuplicateFind dupe = new DuplicateFind();
-			//dupe.DisplayMenu();
 		}
 	}
 }
