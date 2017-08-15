@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileUtil.Core", "FileUtil.C
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileUtil.Data", "FileUtil.Data\FileUtil.Data.csproj", "{B8D1F357-A338-4B5E-A7A0-2EB090804368}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileUtil.Models", "FileUtil.Models\FileUtil.Models.csproj", "{233C164D-D049-4ADB-973B-8540ABF3B865}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{B8D1F357-A338-4B5E-A7A0-2EB090804368}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B8D1F357-A338-4B5E-A7A0-2EB090804368}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B8D1F357-A338-4B5E-A7A0-2EB090804368}.Release|Any CPU.Build.0 = Release|Any CPU
+		{233C164D-D049-4ADB-973B-8540ABF3B865}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{233C164D-D049-4ADB-973B-8540ABF3B865}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{233C164D-D049-4ADB-973B-8540ABF3B865}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{233C164D-D049-4ADB-973B-8540ABF3B865}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

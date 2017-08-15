@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Specialized;
 using System.Configuration;
+using FileUtil.Core;
+using FileUtil.Models;
 
 namespace FileUtil.Service.ServiceInterfaces
 {
@@ -16,6 +18,8 @@ namespace FileUtil.Service.ServiceInterfaces
 			//Read app config options or //todo console selections
 			//Create new FDJ object 
 			FindDuplicatesJob job = new FindDuplicatesJob(SafeGetAppConfigs());
+			FileUtil.Core.FindDuplicates findDuplicates = new FindDuplicates();
+			findDuplicates.Run(job);
 			//Call into core
 		}
 

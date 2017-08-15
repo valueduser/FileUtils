@@ -1,0 +1,10 @@
+
+FileUtil\.Core/obj/Debug/
+
+FileUtil\.Data/obj/Debug/
+
+FileUtil\.Service/obj/Debug/
+
+*.nupkg
+
+FileUtil\.Models/obj/Debug/
