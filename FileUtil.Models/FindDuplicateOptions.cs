@@ -14,7 +14,7 @@ namespace FileUtil.Models
 
 		public FindDuplicateOptions()
 		{
-			IsLocalFileSystem = false;
+			IsLocalFileSystem = true;
 			User = "";
 			Pass = "";
 			Domain = "";
@@ -31,7 +31,7 @@ namespace FileUtil.Models
 			Domain = appSettings["NetworkShareDomain"] ?? "Domain Not Found";
 			Path = appSettings["NetworkShareUncPath"] ?? "UNC Path Not Found";
 			int hashLimit = 0;
-			Int32.TryParse(appSettings["NetworkShareUncPath"], out hashLimit);
+			Int32.TryParse(appSettings["HashSizeLimit"], out hashLimit);
 		}
 	}
 }
