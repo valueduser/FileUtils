@@ -34,7 +34,8 @@ namespace FileUtil.Core
 			{
 				using (UNCAccessWithCredentials.UNCAccessWithCredentials unc = new UNCAccessWithCredentials.UNCAccessWithCredentials())
 				{
-					if (unc.NetUseWithCredentials(job.Options.Path, job.Options.User, job.Options.Domain, job.Options.Pass))
+					if (unc.NetUseWithCredentials(job.Options.Path, job.Options.User, job.Options.Domain, job.Options.Pass) 
+						|| unc.LastError == 1219) // Already connected
 					{
 						FindDuplicates(job);
 					}
@@ -52,10 +53,15 @@ namespace FileUtil.Core
 							case 87:
 								Console.WriteLine("Invalid parameter.");
 								break;
+							case 1219:
+								Console.WriteLine("Multiple connections to server.");
+								unc.Dispose();
+								break;
 							default:
 								Console.WriteLine("Unknown error.");
 								break;
 						}
+						Console.ReadKey();
 					}
 				}
 			}
@@ -73,25 +79,26 @@ namespace FileUtil.Core
 			{
 				string file = _fileArr[i];
 				string filename;
-				float fileSize;
+				long fileSize;
 
 				try
 				{
 					filename = Path.GetFileName(file);
-					fileSize = (new System.IO.FileInfo(file).Length) / 1048576f; //match what the OS reports
+					fileSize = (new System.IO.FileInfo(file).Length) / 1024;
 				}
 				catch (Exception e)
 				{
 					Console.WriteLine($"Error in path: {file}. {e}");
 					continue;
 				}
-				if (fileSize > 2097152) //todo: make configurable
-				{
-					Console.WriteLine($"File {filename} too large to hash. {fileSize}");
-					continue;
-				}
+				//if (fileSize > 2097152) //todo: make configurable
+				//{
+				//	Console.WriteLine($"File {filename} too large to hash. {fileSize}");
+				//	continue;
+				//}
 
-				string hash = FileHelpers.ToHex(FileHelpers.HashFile(file), false);
+				long limit = job.Options.HashLimit; //todo
+				string hash = FileHelpers.ToHex(FileHelpers.HashFile(file, fileSize, limit), false);
 
 				if (!_fileDictionary.ContainsKey(hash))
 				{

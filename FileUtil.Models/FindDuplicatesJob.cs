@@ -16,6 +16,10 @@ namespace FileUtil.Models
 			Path = Options.Path;
 		}
 
-
+		public FindDuplicatesJob(FindDuplicateOptions options)
+		{
+			Options = options;
+			Path = options.Path;
+		}
 	}
 }

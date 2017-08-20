@@ -8,3 +8,7 @@ FileUtil\.Service/obj/Debug/
 *.nupkg
 
 FileUtil\.Models/obj/Debug/
+
+FileUtil\.Core\.Nunit/obj/Debug/
+
+FileUtil\.Core\.Nunit/bin/Debug/
