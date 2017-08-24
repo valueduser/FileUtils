@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 //using System.Diagnostics;
 using System.IO;
 using System.IO.MemoryMappedFiles;
+using System.Linq;
+using System.Linq.Expressions;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -25,12 +28,12 @@ namespace FileUtil.Core
 		internal static byte[] HashFile(string filename, long filesize, long hashLimit = 0)
 		{
 			//_stopwatch.Start();
-			if (hashLimit < filesize)
+			if (hashLimit < filesize && hashLimit != 0)
 			{
 				Console.WriteLine($"Hashing the first {hashLimit} bytes of {filename}...");
 				using (var mmf = MemoryMappedFile.CreateFromFile(filename, FileMode.Open))
 				{
-					using (var stream = mmf.CreateViewStream(0, hashLimit))
+					using (var stream = mmf.CreateViewStream(0, hashLimit * 1024))
 					{
 						using (var md5 = MD5.Create())
 						{
@@ -84,5 +87,53 @@ namespace FileUtil.Core
 		//sb.Append("\n========= END =========");
 		//System.IO.File.WriteAllText(pwd + outputFileName + ".txt", sb.ToString());
 		//Console.ReadKey();
+
+		internal static bool ValidateFileNames(string rootPath)
+		{
+			Console.WriteLine("Validating the file system...");
+			IEnumerable<string> fileSystemList = new List<string>();
+			try
+			{
+				fileSystemList = Directory.EnumerateFileSystemEntries(rootPath, "*", SearchOption.AllDirectories);
+			}
+			catch(System.Exception ex)
+			{
+				Console.WriteLine(ex.Message);
+			}
+
+			Console.WriteLine($"Found {fileSystemList.Count()} entries.");
+			Console.WriteLine("done.");
+
+			if (fileSystemList.Any()) //todo make this more meaningful
+			{
+				return true;
+			}
+
+			return false;
+		}
+
+		internal static IEnumerable<string> SafeGetFilePaths(string rootPath)
+		{
+			Console.WriteLine("Walking the file system...");
+			IEnumerable<string> fileSystemList = new List<string>();
+			try
+			{
+				fileSystemList = Directory.EnumerateFileSystemEntries(rootPath, "*", SearchOption.AllDirectories);
+			}
+			catch (System.Exception ex)
+			{
+				Console.WriteLine(ex.Message);
+			}
+
+			Console.WriteLine($"Found {fileSystemList.Count()} entries.");
+			Console.WriteLine("done.");
+
+			if (fileSystemList.Any()) //todo make this more meaningful
+			{
+				return fileSystemList;
+			}
+
+			return new List<string>();
+		}
 	}
 }

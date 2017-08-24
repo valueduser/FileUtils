@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using FileUtil.Models;
 using File = FileUtil.Models.File;
@@ -32,10 +33,11 @@ namespace FileUtil.Core
 			}
 			else
 			{
-				using (UNCAccessWithCredentials.UNCAccessWithCredentials unc = new UNCAccessWithCredentials.UNCAccessWithCredentials())
+				using (UNCAccessWithCredentials.UNCAccessWithCredentials unc =
+					new UNCAccessWithCredentials.UNCAccessWithCredentials())
 				{
-					if (unc.NetUseWithCredentials(job.Options.Path, job.Options.User, job.Options.Domain, job.Options.Pass) 
-						|| unc.LastError == 1219) // Already connected
+					if (unc.NetUseWithCredentials(job.Options.Path, job.Options.User, job.Options.Domain, job.Options.Pass)
+					    || unc.LastError == 1219) // Already connected
 					{
 						FindDuplicates(job);
 					}
@@ -108,12 +110,17 @@ namespace FileUtil.Core
 						SizeInMB = fileSize,
 						FullPath = file,
 						Hash = hash,
-						Duplicates = new List<string>()
+						Duplicates = new List<string>(),
+						HashCollisions = new List<string>()
 					});
+				}
+				else if (_fileDictionary.ContainsKey(hash) && fileSize == _fileDictionary[hash].SizeInMB)
+				{
+					_fileDictionary[hash].Duplicates.Add(file);
 				}
 				else
 				{
-					_fileDictionary[hash].Duplicates.Add(file);
+					_fileDictionary[hash].HashCollisions.Add(file);
 				}
 			}
 			Console.WriteLine("done.");
@@ -121,7 +128,8 @@ namespace FileUtil.Core
 
 		public void FindDuplicates(FindDuplicatesJob job)
 		{
-			WalkFilePaths(job);
+			//WalkFilePaths(job);
+			_fileArr = FileHelpers.SafeGetFilePaths(job.Path).ToArray(); //does this handle invalid characters better?  
 			Execute(job);
 			ReportResults();
 		}
@@ -143,10 +151,21 @@ namespace FileUtil.Core
 					}
 					sb.Append("\n");
 				}
+				if (file.Value.HashCollisions.Count > 0)
+				{
+					sb.Append($"MD5 Hash: {file.Key} is shared by the following files with differing file sizes: \n");
+					sb.Append($"{file.Value.FullPath,-10}\n");
+					foreach (var collision in file.Value.HashCollisions)
+					{
+						sb.Append($"\t{collision,-10}\n : {file.Value.SizeInMB:0.00} MB");
+					}
+					sb.Append("\n");
+				}
 			}
 
 			string pwd = Path.GetFullPath(@".\");
-			string outputFileName = $"Dupes_{DateTime.UtcNow.Month}.{DateTime.UtcNow.Day}.{DateTime.UtcNow.Year}-{DateTime.UtcNow.Hour}_{DateTime.UtcNow.Minute}";
+			string outputFileName =
+				$"Dupes_{DateTime.UtcNow.Month}.{DateTime.UtcNow.Day}.{DateTime.UtcNow.Year}-{DateTime.UtcNow.Hour}_{DateTime.UtcNow.Minute}";
 			Console.WriteLine($"Writing report file to {pwd + outputFileName}.txt"); //todo: make configurable
 			sb.Append("\n========= END =========");
 			System.IO.File.WriteAllText(pwd + outputFileName + ".txt", sb.ToString());
@@ -156,7 +175,14 @@ namespace FileUtil.Core
 		public void WalkFilePaths(FindDuplicatesJob job)
 		{
 			Console.WriteLine("Walking the file tree...");
-			_fileArr = System.IO.Directory.GetFiles(job.Path, "*.*", System.IO.SearchOption.AllDirectories);
+			try
+			{
+				_fileArr = System.IO.Directory.GetFiles(job.Path, "*.*", System.IO.SearchOption.AllDirectories);
+			}
+			catch (Exception e)
+			{
+				Console.WriteLine($"Exception encountered walking the file tree: {e}");
+			}
 			Console.WriteLine("done.");
 			int filesFound = _fileArr.Length;
 			Console.WriteLine($"Found {filesFound} files.");
@@ -167,6 +193,11 @@ namespace FileUtil.Core
 			if(!job.Options.IsLocalFileSystem && (String.IsNullOrEmpty(job.Options.User)|| String.IsNullOrEmpty(job.Options.Pass)))
 			{
 				throw new ArgumentException("Remote Filesystem selected but credentials were invalid.");
+			}
+
+			if (!FileHelpers.ValidateFileNames(job.Path))
+			{
+				throw new ArgumentException();
 			}
 		}
 	}
