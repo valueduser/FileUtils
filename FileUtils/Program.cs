@@ -1,11 +1,13 @@
-﻿namespace FileUtils
+﻿using FileUtil.Service.ServiceInterfaces;
+
+namespace FileUtils
 {
 	class Program
 	{
 		static void Main(string[] args)
 		{
-			DuplicateFind dupe = new DuplicateFind();
-			dupe.DisplayMenu();
+			FindDuplicateFilesService dupe = new FindDuplicateFilesService();
+			dupe.FindDuplicates();
 		}
 	}
 }
