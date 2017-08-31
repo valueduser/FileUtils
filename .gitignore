@@ -12,3 +12,11 @@ FileUtil\.Models/obj/Debug/
 FileUtil\.Core\.Nunit/obj/Debug/
 
 FileUtil\.Core\.Nunit/bin/Debug/
+
+FileUtil\.Core/bin/Debug/
+
+FileUtil\.Data/bin/Debug/
+
+FileUtil\.Models/bin/Debug/
+
+FileUtil\.Service/bin/Debug/
