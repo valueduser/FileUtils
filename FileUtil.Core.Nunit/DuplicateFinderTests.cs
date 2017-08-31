@@ -3,6 +3,7 @@ using System;
 using FileUtil.Core;
 using FileUtil.Models;
 using FileUtil.Service.ServiceInterfaces;
+using Moq;
 
 namespace FileUtils
 {
@@ -31,7 +32,7 @@ namespace FileUtils
 			FindDuplicatesJob job = new FindDuplicatesJob(options);
 			DuplicateFinder sut = new DuplicateFinder();
 			sut.RunJob(job);
-
+			
 			Assert.IsTrue(true);
 		}
 	}
