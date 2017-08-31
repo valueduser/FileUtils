@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 using FileUtil.Models;
 using File = FileUtil.Models.File;
@@ -58,6 +57,9 @@ namespace FileUtil.Core
 							case 1219:
 								Console.WriteLine("Multiple connections to server.");
 								unc.Dispose();
+								break;
+							case 53:
+								Console.WriteLine("Network path not found.");
 								break;
 							default:
 								Console.WriteLine("Unknown error.");
@@ -126,12 +128,13 @@ namespace FileUtil.Core
 			Console.WriteLine("done.");
 		}
 
+		//todo: reorder the methods in this file in a sensible way
 		public void FindDuplicates(FindDuplicatesJob job)
 		{
-			//WalkFilePaths(job);
-			_fileArr = FileHelpers.SafeGetFilePaths(job.Path).ToArray(); //does this handle invalid characters better?  
+			_fileArr = FileHelpers.WalkFilePaths(job);
 			Execute(job);
-			ReportResults();
+			//ReportResults();
+			Console.ReadKey();
 		}
 
 		internal void ReportResults()
@@ -172,22 +175,6 @@ namespace FileUtil.Core
 			Console.ReadKey();
 		}
 
-		public void WalkFilePaths(FindDuplicatesJob job)
-		{
-			Console.WriteLine("Walking the file tree...");
-			try
-			{
-				_fileArr = System.IO.Directory.GetFiles(job.Path, "*.*", System.IO.SearchOption.AllDirectories);
-			}
-			catch (Exception e)
-			{
-				Console.WriteLine($"Exception encountered walking the file tree: {e}");
-			}
-			Console.WriteLine("done.");
-			int filesFound = _fileArr.Length;
-			Console.WriteLine($"Found {filesFound} files.");
-		}
-
 		public void ValidateJob(FindDuplicatesJob job)
 		{
 			if(!job.Options.IsLocalFileSystem && (String.IsNullOrEmpty(job.Options.User)|| String.IsNullOrEmpty(job.Options.Pass)))
@@ -195,10 +182,10 @@ namespace FileUtil.Core
 				throw new ArgumentException("Remote Filesystem selected but credentials were invalid.");
 			}
 
-			if (!FileHelpers.ValidateFileNames(job.Path))
-			{
-				throw new ArgumentException();
-			}
+			//if (!FileHelpers.ValidateFileNames(job.Path))
+			//{
+			//	throw new ArgumentException();
+			//}
 		}
 	}
 }

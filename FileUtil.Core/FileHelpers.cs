@@ -7,6 +7,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Security.Cryptography;
 using System.Text;
+using FileUtil.Models;
 
 namespace FileUtil.Core
 {
@@ -81,12 +82,6 @@ namespace FileUtil.Core
 				}
 			}
 		}
-		//string pwd = Path.GetFullPath(@".\");
-		//string outputFileName = $"Dupes_{DateTime.UtcNow.Month}.{DateTime.UtcNow.Day}.{DateTime.UtcNow.Year}-{DateTime.UtcNow.Hour}_{DateTime.UtcNow.Minute}";
-		//Console.WriteLine($"Writing report file to {pwd + outputFileName}.txt"); //todo: make configurable
-		//sb.Append("\n========= END =========");
-		//System.IO.File.WriteAllText(pwd + outputFileName + ".txt", sb.ToString());
-		//Console.ReadKey();
 
 		internal static bool ValidateFileNames(string rootPath)
 		{
@@ -112,28 +107,60 @@ namespace FileUtil.Core
 			return false;
 		}
 
-		internal static IEnumerable<string> SafeGetFilePaths(string rootPath)
+		//internal static string[] SafeGetFilePaths(string rootPath)
+		//{
+			
+		//	Console.WriteLine("SafeGetFilePaths...");
+		//	IEnumerable<string> fileSystemList = new List<string>();
+		//	try
+		//	{
+		//		fileSystemList = Directory.EnumerateFiles(rootPath, "*", SearchOption.AllDirectories);
+		//	}
+		//	catch (System.Exception ex)
+		//	{
+		//		Console.WriteLine(ex.Message);
+		//	}
+		//	Console.WriteLine($"Found {fileSystemList.Count()} entries.");
+		//	Console.WriteLine("done.");
+
+		//	if (fileSystemList.Any()) //todo make this more meaningful
+		//	{
+		//		//debug
+		//		StringBuilder sb = new StringBuilder();
+		//		foreach (string path in fileSystemList)
+		//		{
+		//			sb.Append(path + "\n");
+		//		}
+		//		string outputFileName = $"SafeGetFilePaths_Files_{DateTime.UtcNow.Month}.{DateTime.UtcNow.Day}.{DateTime.UtcNow.Year}-{DateTime.UtcNow.Hour}_{DateTime.UtcNow.Minute}";
+		//		string pwd = Path.GetFullPath(@".\");
+
+		//		System.IO.File.WriteAllText(pwd + outputFileName + ".txt", sb.ToString());
+		//		//debug
+
+		//		return fileSystemList.ToArray();
+		//	}
+
+		//	return new string[] {};
+		//}
+
+		public static string[] WalkFilePaths(FindDuplicatesJob job)
 		{
-			Console.WriteLine("Walking the file system...");
-			IEnumerable<string> fileSystemList = new List<string>();
+			Console.WriteLine("Walking file system paths...");
+			string[] fileSystemList = new string[] { };
+
 			try
 			{
-				fileSystemList = Directory.EnumerateFileSystemEntries(rootPath, "*", SearchOption.AllDirectories);
+				fileSystemList = System.IO.Directory.GetFiles(job.Path, "*.*", System.IO.SearchOption.AllDirectories);
 			}
-			catch (System.Exception ex)
+			catch (Exception e)
 			{
-				Console.WriteLine(ex.Message);
+				Console.WriteLine($"Exception encountered walking the file tree: {e}");
 			}
-
-			Console.WriteLine($"Found {fileSystemList.Count()} entries.");
 			Console.WriteLine("done.");
-
-			if (fileSystemList.Any()) //todo make this more meaningful
-			{
-				return fileSystemList;
-			}
-
-			return new List<string>();
+			int filesFound = fileSystemList.Length;
+			Console.WriteLine($"Found {filesFound} files.");
+			
+			return fileSystemList;
 		}
 	}
 }
