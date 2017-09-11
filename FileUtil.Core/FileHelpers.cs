@@ -13,8 +13,10 @@ namespace FileUtil.Core
 {
 	public class FileHelpers
 	{
+		static int lastPercentUpdate = 0; 
+
 		//private static Stopwatch _stopwatch = new Stopwatch();
-		//private static long partialTime, fullTime;
+										  //private static long partialTime, fullTime;
 
 		internal static string ToHex(byte[] bytes, bool upperCase)
 		{
@@ -161,6 +163,23 @@ namespace FileUtil.Core
 			Console.WriteLine($"Found {filesFound} files.");
 			
 			return fileSystemList;
+		}
+
+		public static void UpdateProgress(int currentIteration, int totalIterations)
+		{
+			double dprogress = ((double)currentIteration / totalIterations) * 100;
+			int progress = (int)dprogress;
+			if (progress > lastPercentUpdate)
+			{
+				lastPercentUpdate = progress;
+				StringBuilder sb = new StringBuilder();
+				string hashes = String.Concat(Enumerable.Repeat("#", (progress / 5)));
+				string dots = String.Concat(Enumerable.Repeat(".", 20 - (progress / 5)));
+				string percentageComplete = $"{lastPercentUpdate}%";
+				sb.Append($"[{hashes}{dots}] {percentageComplete} ({currentIteration}/{totalIterations})");
+				//Console.Clear();
+				Console.WriteLine(sb.ToString());
+			}
 		}
 	}
 }

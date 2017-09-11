@@ -81,6 +81,7 @@ namespace FileUtil.Core
 
 			for (int i = 0; i < numberOfFilesFound; i++)
 			{
+				FileHelpers.UpdateProgress(i, numberOfFilesFound);
 				string file = _fileArr[i];
 				string filename;
 				long fileSize;
