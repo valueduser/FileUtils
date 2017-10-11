@@ -6,8 +6,9 @@ namespace FileUtil.Models
 	{
 		public string Filename { get; set; }
 		public string FullPath { get; set; }
-		public float SizeInMB { get; set; }
+		public long SizeInMB { get; set; }
 		public string Hash { get; set; }
 		public List<string> Duplicates { get; set; }
+		public List<string> HashCollisions { get; set; }
 	}
 }

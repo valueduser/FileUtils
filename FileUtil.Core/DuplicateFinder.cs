@@ -32,9 +32,11 @@ namespace FileUtil.Core
 			}
 			else
 			{
-				using (UNCAccessWithCredentials.UNCAccessWithCredentials unc = new UNCAccessWithCredentials.UNCAccessWithCredentials())
+				using (UNCAccessWithCredentials.UNCAccessWithCredentials unc =
+					new UNCAccessWithCredentials.UNCAccessWithCredentials())
 				{
-					if (unc.NetUseWithCredentials(job.Options.Path, job.Options.User, job.Options.Domain, job.Options.Pass))
+					if (unc.NetUseWithCredentials(job.Options.Path, job.Options.User, job.Options.Domain, job.Options.Pass)
+					    || unc.LastError == 1219) // Already connected
 					{
 						FindDuplicates(job);
 					}
@@ -52,10 +54,18 @@ namespace FileUtil.Core
 							case 87:
 								Console.WriteLine("Invalid parameter.");
 								break;
+							case 1219:
+								Console.WriteLine("Multiple connections to server.");
+								unc.Dispose();
+								break;
+							case 53:
+								Console.WriteLine("Network path not found.");
+								break;
 							default:
 								Console.WriteLine("Unknown error.");
 								break;
 						}
+						Console.ReadKey();
 					}
 				}
 			}
@@ -73,25 +83,26 @@ namespace FileUtil.Core
 			{
 				string file = _fileArr[i];
 				string filename;
-				float fileSize;
+				long fileSize;
 
 				try
 				{
 					filename = Path.GetFileName(file);
-					fileSize = (new System.IO.FileInfo(file).Length) / 1048576f; //match what the OS reports
+					fileSize = (new System.IO.FileInfo(file).Length) / 1024;
 				}
 				catch (Exception e)
 				{
 					Console.WriteLine($"Error in path: {file}. {e}");
 					continue;
 				}
-				if (fileSize > 2097152) //todo: make configurable
-				{
-					Console.WriteLine($"File {filename} too large to hash. {fileSize}");
-					continue;
-				}
+				//if (fileSize > 2097152) //todo: make configurable
+				//{
+				//	Console.WriteLine($"File {filename} too large to hash. {fileSize}");
+				//	continue;
+				//}
 
-				string hash = FileHelpers.ToHex(FileHelpers.HashFile(file), false);
+				long limit = job.Options.HashLimit; //todo
+				string hash = FileHelpers.ToHex(FileHelpers.HashFile(file, fileSize, limit), false);
 
 				if (!_fileDictionary.ContainsKey(hash))
 				{
@@ -101,22 +112,29 @@ namespace FileUtil.Core
 						SizeInMB = fileSize,
 						FullPath = file,
 						Hash = hash,
-						Duplicates = new List<string>()
+						Duplicates = new List<string>(),
+						HashCollisions = new List<string>()
 					});
+				}
+				else if (_fileDictionary.ContainsKey(hash) && fileSize == _fileDictionary[hash].SizeInMB)
+				{
+					_fileDictionary[hash].Duplicates.Add(file);
 				}
 				else
 				{
-					_fileDictionary[hash].Duplicates.Add(file);
+					_fileDictionary[hash].HashCollisions.Add(file);
 				}
 			}
 			Console.WriteLine("done.");
 		}
 
+		//todo: reorder the methods in this file in a sensible way
 		public void FindDuplicates(FindDuplicatesJob job)
 		{
-			WalkFilePaths(job);
+			_fileArr = FileHelpers.WalkFilePaths(job);
 			Execute(job);
-			ReportResults();
+			//ReportResults();
+			Console.ReadKey();
 		}
 
 		internal void ReportResults()
@@ -136,23 +154,25 @@ namespace FileUtil.Core
 					}
 					sb.Append("\n");
 				}
+				if (file.Value.HashCollisions.Count > 0)
+				{
+					sb.Append($"MD5 Hash: {file.Key} is shared by the following files with differing file sizes: \n");
+					sb.Append($"{file.Value.FullPath,-10}\n");
+					foreach (var collision in file.Value.HashCollisions)
+					{
+						sb.Append($"\t{collision,-10}\n : {file.Value.SizeInMB:0.00} MB");
+					}
+					sb.Append("\n");
+				}
 			}
 
 			string pwd = Path.GetFullPath(@".\");
-			string outputFileName = $"Dupes_{DateTime.UtcNow.Month}.{DateTime.UtcNow.Day}.{DateTime.UtcNow.Year}-{DateTime.UtcNow.Hour}_{DateTime.UtcNow.Minute}";
+			string outputFileName =
+				$"Dupes_{DateTime.UtcNow.Month}.{DateTime.UtcNow.Day}.{DateTime.UtcNow.Year}-{DateTime.UtcNow.Hour}_{DateTime.UtcNow.Minute}";
 			Console.WriteLine($"Writing report file to {pwd + outputFileName}.txt"); //todo: make configurable
 			sb.Append("\n========= END =========");
 			System.IO.File.WriteAllText(pwd + outputFileName + ".txt", sb.ToString());
 			Console.ReadKey();
-		}
-
-		public void WalkFilePaths(FindDuplicatesJob job)
-		{
-			Console.WriteLine("Walking the file tree...");
-			_fileArr = System.IO.Directory.GetFiles(job.Path, "*.*", System.IO.SearchOption.AllDirectories);
-			Console.WriteLine("done.");
-			int filesFound = _fileArr.Length;
-			Console.WriteLine($"Found {filesFound} files.");
 		}
 
 		public void ValidateJob(FindDuplicatesJob job)
@@ -161,6 +181,11 @@ namespace FileUtil.Core
 			{
 				throw new ArgumentException("Remote Filesystem selected but credentials were invalid.");
 			}
+
+			//if (!FileHelpers.ValidateFileNames(job.Path))
+			//{
+			//	throw new ArgumentException();
+			//}
 		}
 	}
 }

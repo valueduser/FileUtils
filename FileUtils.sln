@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileUtil.Data", "FileUtil.D
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileUtil.Models", "FileUtil.Models\FileUtil.Models.csproj", "{233C164D-D049-4ADB-973B-8540ABF3B865}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileUtil.Core.Nunit", "FileUtil.Core.Nunit\FileUtil.Core.Nunit.csproj", "{FAA9BE60-48D8-4B96-9D97-C5F5728EAC8B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{233C164D-D049-4ADB-973B-8540ABF3B865}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{233C164D-D049-4ADB-973B-8540ABF3B865}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{233C164D-D049-4ADB-973B-8540ABF3B865}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FAA9BE60-48D8-4B96-9D97-C5F5728EAC8B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FAA9BE60-48D8-4B96-9D97-C5F5728EAC8B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FAA9BE60-48D8-4B96-9D97-C5F5728EAC8B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FAA9BE60-48D8-4B96-9D97-C5F5728EAC8B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
