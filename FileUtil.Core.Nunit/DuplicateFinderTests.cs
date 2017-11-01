@@ -10,6 +10,8 @@ namespace FileUtils
 	[TestFixture()]
 	public class DuplicateFindTests
 	{
+		//Todo mock fileshare, AppConfigs
+
 		[Test()]
 		public void Canary()
 		{
@@ -31,7 +33,7 @@ namespace FileUtils
 			};
 			FindDuplicatesJob job = new FindDuplicatesJob(options);
 			DuplicateFinder sut = new DuplicateFinder();
-			sut.RunJob(job);
+			sut.FindDuplicateFiles(job);
 			
 			Assert.IsTrue(true);
 		}

@@ -10,22 +10,16 @@ namespace FileUtil.Core
 	public interface IFindDuplicates
 	{
 		void ValidateJob(FindDuplicatesJob job);
-		void RunJob(FindDuplicatesJob job);
-		void WalkFilePaths(FindDuplicatesJob job);
 		void FindDuplicates(FindDuplicatesJob job);
-		void Execute(FindDuplicatesJob job);
+		void FindDuplicateFiles(FindDuplicatesJob job);
 	}
-
 
 	public class DuplicateFinder
 	{
-		private String[] _fileArr;
 		private Dictionary<string, File> _fileDictionary;
 
-		public void RunJob(FindDuplicatesJob job)
+		public void FindDuplicateFiles(FindDuplicatesJob job)
 		{
-			ValidateJob(job);
-
 			if (job.Options.IsLocalFileSystem)
 			{
 				FindDuplicates(job);
@@ -61,6 +55,9 @@ namespace FileUtil.Core
 							case 53:
 								Console.WriteLine("Network path not found.");
 								break;
+							case 5:
+								Console.WriteLine("Access denied.");
+								break;
 							default:
 								Console.WriteLine("Unknown error.");
 								break;
@@ -71,18 +68,19 @@ namespace FileUtil.Core
 			}
 		}
 
-		public void Execute(FindDuplicatesJob job)
+		public void FindDuplicates(FindDuplicatesJob job)
 		{
 			Console.Write("Looking for duplicates...");
 			//todo: progress
+			job.FilesArr = FileHelpers.WalkFilePaths(job);
 
-			int numberOfFilesFound = _fileArr.Length;
+			int numberOfFilesFound = job.FilesArr.Length;
 			_fileDictionary = new Dictionary<string, File>();
 
 			for (int i = 0; i < numberOfFilesFound; i++)
 			{
 				FileHelpers.UpdateProgress(i, numberOfFilesFound);
-				string file = _fileArr[i];
+				string file = job.FilesArr[i];
 				string filename;
 				long fileSize;
 
@@ -127,19 +125,14 @@ namespace FileUtil.Core
 				}
 			}
 			Console.WriteLine("done.");
+			ReportResults();
 		}
 
-		//todo: reorder the methods in this file in a sensible way
-		public void FindDuplicates(FindDuplicatesJob job)
+		internal void ReportResults() 
 		{
-			_fileArr = FileHelpers.WalkFilePaths(job);
-			Execute(job);
-			//ReportResults();
-			Console.ReadKey();
-		}
+			//Todo make this a Result object and pull the file printing work out into a separate class
+			//Todo print number of duplicates to the console and only bother with a text file if dupes > 0
 
-		internal void ReportResults()
-		{
 			StringBuilder sb = new StringBuilder();
 			sb.Append("========= DUPLICATE FILE RESULTS =========\n\n");
 
@@ -173,6 +166,7 @@ namespace FileUtil.Core
 			Console.WriteLine($"Writing report file to {pwd + outputFileName}.txt"); //todo: make configurable
 			sb.Append("\n========= END =========");
 			System.IO.File.WriteAllText(pwd + outputFileName + ".txt", sb.ToString());
+			Console.WriteLine("Done.");
 			Console.ReadKey();
 		}
 
@@ -182,11 +176,6 @@ namespace FileUtil.Core
 			{
 				throw new ArgumentException("Remote Filesystem selected but credentials were invalid.");
 			}
-
-			//if (!FileHelpers.ValidateFileNames(job.Path))
-			//{
-			//	throw new ArgumentException();
-			//}
 		}
 	}
 }

@@ -43,6 +43,7 @@
     <Compile Include="File.cs" />
     <Compile Include="FindDuplicateOptions.cs" />
     <Compile Include="FindDuplicatesJob.cs" />
+    <Compile Include="Interfaces\IJob.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

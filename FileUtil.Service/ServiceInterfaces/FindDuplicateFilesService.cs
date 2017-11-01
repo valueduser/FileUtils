@@ -16,12 +16,13 @@ namespace FileUtil.Service.ServiceInterfaces
 		public void FindDuplicates()
 		{
 			//Read app config options or //todo console selections
-			//Create new FDJ object 
 			FindDuplicatesJob job = new FindDuplicatesJob(SafeGetAppConfigs());
 			
 			//Call into core
 			FileUtil.Core.DuplicateFinder dupeFinder = new DuplicateFinder();
-			dupeFinder.RunJob(job);
+			dupeFinder.ValidateJob(job);
+			dupeFinder.FindDuplicateFiles(job);
+			Console.ReadKey();
 		}
 
 		private NameValueCollection SafeGetAppConfigs()

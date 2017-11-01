@@ -157,6 +157,7 @@ namespace FileUtil.Core
 			catch (Exception e)
 			{
 				Console.WriteLine($"Exception encountered walking the file tree: {e}");
+				throw;
 			}
 			Console.WriteLine("done.");
 			int filesFound = fileSystemList.Length;
