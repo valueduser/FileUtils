@@ -24,7 +24,7 @@ namespace FileUtil.Models
 
 		public FindDuplicateOptions(NameValueCollection appSettings)
 		{
-			bool isLocalFileSystem = false;
+			bool isLocalFileSystem = true;
 			Boolean.TryParse(appSettings["isLocalFileSystem"], out isLocalFileSystem);
 			IsLocalFileSystem = isLocalFileSystem;
 

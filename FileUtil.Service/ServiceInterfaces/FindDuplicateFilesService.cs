@@ -18,10 +18,10 @@ namespace FileUtil.Service.ServiceInterfaces
 			//Read app config options or //todo console selections
 			FindDuplicatesJob job = new FindDuplicatesJob(SafeGetAppConfigs());
 			
-			//Call into core
 			FileUtil.Core.DuplicateFinder dupeFinder = new DuplicateFinder();
 			dupeFinder.ValidateJob(job);
 			dupeFinder.FindDuplicateFiles(job);
+
 			Console.ReadKey();
 		}
 
