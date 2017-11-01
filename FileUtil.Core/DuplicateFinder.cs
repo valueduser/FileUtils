@@ -7,17 +7,15 @@ using File = FileUtil.Models.File;
 
 namespace FileUtil.Core
 {
-	public interface IFindDuplicates
+	public interface IDuplicateFinder
 	{
 		void ValidateJob(FindDuplicatesJob job);
-		void FindDuplicates(FindDuplicatesJob job);
+		FindDuplicatesResult FindDuplicates(FindDuplicatesJob job);
 		void FindDuplicateFiles(FindDuplicatesJob job);
 	}
 
 	public class DuplicateFinder
 	{
-		private Dictionary<string, File> _fileDictionary;
-
 		public void FindDuplicateFiles(FindDuplicatesJob job)
 		{
 			if (job.Options.IsLocalFileSystem)
@@ -68,14 +66,15 @@ namespace FileUtil.Core
 			}
 		}
 
-		public void FindDuplicates(FindDuplicatesJob job)
+		public FindDuplicatesResult FindDuplicates(FindDuplicatesJob job)
 		{
+			FindDuplicatesResult results = new FindDuplicatesResult();
+
 			Console.Write("Looking for duplicates...");
 			//todo: progress
 			job.FilesArr = FileHelpers.WalkFilePaths(job);
 
 			int numberOfFilesFound = job.FilesArr.Length;
-			_fileDictionary = new Dictionary<string, File>();
 
 			for (int i = 0; i < numberOfFilesFound; i++)
 			{
@@ -103,9 +102,9 @@ namespace FileUtil.Core
 				long limit = job.Options.HashLimit; //todo
 				string hash = FileHelpers.ToHex(FileHelpers.HashFile(file, fileSize, limit), false);
 
-				if (!_fileDictionary.ContainsKey(hash))
+				if (!results.Duplicates.ContainsKey(hash))
 				{
-					_fileDictionary.Add(hash, new File()
+					results.Duplicates.Add(hash, new File()
 					{
 						Filename = filename,
 						SizeInMB = fileSize,
@@ -115,28 +114,29 @@ namespace FileUtil.Core
 						HashCollisions = new List<string>()
 					});
 				}
-				else if (_fileDictionary.ContainsKey(hash) && fileSize == _fileDictionary[hash].SizeInMB)
+				else if (results.Duplicates.ContainsKey(hash) && fileSize == results.Duplicates[hash].SizeInMB)
 				{
-					_fileDictionary[hash].Duplicates.Add(file);
+					results.Duplicates[hash].Duplicates.Add(file);
 				}
 				else
 				{
-					_fileDictionary[hash].HashCollisions.Add(file);
+					results.Duplicates[hash].HashCollisions.Add(file);
 				}
 			}
 			Console.WriteLine("done.");
-			ReportResults();
+			ReportResults(results);
+			return results;
 		}
 
-		internal void ReportResults() 
+		internal void ReportResults(FindDuplicatesResult results)
 		{
-			//Todo make this a Result object and pull the file printing work out into a separate class
+			//Todo pull the file printing work out into a separate class
 			//Todo print number of duplicates to the console and only bother with a text file if dupes > 0
 
 			StringBuilder sb = new StringBuilder();
 			sb.Append("========= DUPLICATE FILE RESULTS =========\n\n");
 
-			foreach (var file in _fileDictionary)
+			foreach (var file in results.Duplicates)
 			{
 				if (file.Value.Duplicates.Count > 0)
 				{
