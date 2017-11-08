@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using FileUtil.Models;
 using File = FileUtil.Models.File;
@@ -69,9 +70,9 @@ namespace FileUtil.Core
 		public FindDuplicatesResult FindDuplicates(FindDuplicatesJob job)
 		{
 			FindDuplicatesResult results = new FindDuplicatesResult();
+			results.ReportOrderPreference = job.Options.ReportOrderPreference;
 
 			Console.Write("Looking for duplicates...");
-			//todo: progress
 			job.FilesArr = FileHelpers.WalkFilePaths(job);
 
 			int numberOfFilesFound = job.FilesArr.Length;
@@ -133,10 +134,37 @@ namespace FileUtil.Core
 			//Todo pull the file printing work out into a separate class
 			//Todo print number of duplicates to the console and only bother with a text file if dupes > 0
 
+			var reportDictionary = new Dictionary<string, File>();
+			if (results.ReportOrderPreference.Equals(Enums.ReportOrder.FileSizeDesc.ToString()))
+			{
+				foreach (var duplicate in results.Duplicates.OrderByDescending(i => i.Value.SizeInMB))
+				{
+					reportDictionary.Add(duplicate.Key, duplicate.Value);
+				}
+			}
+			else if (results.ReportOrderPreference.Equals(Enums.ReportOrder.FileSizeAsc.ToString()))
+			{
+				foreach (var duplicate in results.Duplicates.OrderBy(i => i.Value.SizeInMB))
+				{
+					reportDictionary.Add(duplicate.Key, duplicate.Value);
+				}
+			}
+			else if (results.ReportOrderPreference.Equals(Enums.ReportOrder.Alphabetical.ToString()))
+			{
+				foreach (var duplicate in results.Duplicates.OrderBy(i => i.Value.Filename))
+				{
+					reportDictionary.Add(duplicate.Key, duplicate.Value);
+				}
+			}
+			else
+			{
+				reportDictionary = results.Duplicates;
+			}
+
 			StringBuilder sb = new StringBuilder();
 			sb.Append("========= DUPLICATE FILE RESULTS =========\n\n");
 
-			foreach (var file in results.Duplicates)
+			foreach (var file in reportDictionary)
 			{
 				if (file.Value.Duplicates.Count > 0)
 				{
