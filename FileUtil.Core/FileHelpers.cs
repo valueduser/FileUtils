@@ -9,11 +9,16 @@ using FileUtil.Models;
 
 namespace FileUtil.Core
 {
+    public interface IFileHelpers
+    {
+        string[] WalkFilePaths(FindDuplicatesJob job);
+    }
+
 	public class FileHelpers
 	{
 		static int lastPercentUpdate = 0; 
 
-		internal static string ToHex(byte[] bytes, bool upperCase)
+		internal string ToHex(byte[] bytes, bool upperCase)
 		{
 			StringBuilder result = new StringBuilder(bytes.Length * 2);
 
@@ -23,7 +28,7 @@ namespace FileUtil.Core
 			return result.ToString();
 		}
 
-		internal static byte[] HashFile(string filename, long filesize, long hashLimit = 0)
+		internal byte[] HashFile(string filename, long filesize, long hashLimit = 0)
 		{
 			if (hashLimit < filesize && hashLimit != 0)
 			{
@@ -73,7 +78,7 @@ namespace FileUtil.Core
 			}
 		}
 
-		internal static bool ValidateFileNames(string rootPath)
+		internal bool ValidateFileNames(string rootPath)
 		{
 			Console.WriteLine("Validating the file system...");
 			IEnumerable<string> fileSystemList = new List<string>();
@@ -97,7 +102,7 @@ namespace FileUtil.Core
 			return false;
 		}
 
-		public static string[] WalkFilePaths(FindDuplicatesJob job)
+		public string[] WalkFilePaths(FindDuplicatesJob job)
 		{
 			Console.WriteLine("Walking file system paths...");
 			string[] fileSystemList = new string[] { };
@@ -118,7 +123,7 @@ namespace FileUtil.Core
 			return fileSystemList;
 		}
 
-		public static void UpdateProgress(int currentIteration, int totalIterations)
+		public void UpdateProgress(int currentIteration, int totalIterations)
 		{
 			double dprogress = ((double)currentIteration / totalIterations) * 100;
 			int progress = (int)dprogress;

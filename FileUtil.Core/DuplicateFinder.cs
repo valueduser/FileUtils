@@ -17,6 +17,8 @@ namespace FileUtil.Core
 
 	public class DuplicateFinder
 	{
+        private FileHelpers _helper = new FileHelpers();
+
 		public void FindDuplicateFiles(FindDuplicatesJob job)
 		{
 			if (job.Options.IsLocalFileSystem)
@@ -73,13 +75,13 @@ namespace FileUtil.Core
 			results.ReportOrderPreference = job.Options.ReportOrderPreference;
 
 			Console.Write("Looking for duplicates...");
-			job.FilesArr = FileHelpers.WalkFilePaths(job);
+			job.FilesArr = _helper.WalkFilePaths(job);
 
 			int numberOfFilesFound = job.FilesArr.Length;
 
 			for (int i = 0; i < numberOfFilesFound; i++)
 			{
-				FileHelpers.UpdateProgress(i, numberOfFilesFound);
+			    _helper.UpdateProgress(i, numberOfFilesFound);
 				string file = job.FilesArr[i];
 				string filename;
 				long fileSize;
@@ -101,7 +103,7 @@ namespace FileUtil.Core
 				//}
 
 				long limit = job.Options.HashLimit; //todo
-				string hash = FileHelpers.ToHex(FileHelpers.HashFile(file, fileSize, limit), false);
+				string hash = _helper.ToHex(_helper.HashFile(file, fileSize, limit), false);
 
 				if (!results.Duplicates.ContainsKey(hash))
 				{
@@ -125,8 +127,8 @@ namespace FileUtil.Core
 				}
 			}
 			Console.WriteLine("done.");
-			ReportResults(results);
-			return results;
+		    //ReportResults(results);
+            return results;
 		}
 
 		internal void ReportResults(FindDuplicatesResult results)
