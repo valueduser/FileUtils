@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Abstractions;
 using System.Linq;
 using System.Text;
 using FileUtil.Models;
@@ -17,7 +18,8 @@ namespace FileUtil.Core
 
 	public class DuplicateFinder
 	{
-        private FileHelpers _helper = new FileHelpers();
+	    private static IFileSystem fileSystem;
+        private FileHelpers _helper = new FileHelpers(fileSystem);
 
 		public void FindDuplicateFiles(FindDuplicatesJob job)
 		{

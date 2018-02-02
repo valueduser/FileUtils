@@ -1,4 +1,6 @@
-﻿using FileUtil.Service.ServiceInterfaces;
+﻿using Castle.Windsor;
+using Castle.MicroKernel.Registration;
+using FileUtil.Service.ServiceInterfaces;
 
 namespace FileUtils
 {
@@ -6,7 +8,10 @@ namespace FileUtils
 	{
 		static void Main(string[] args)
 		{
-			FindDuplicateFilesService dupe = new FindDuplicateFilesService();
+		    var container = new WindsorContainer();
+
+		    //container.Register(Component.For<ICompositionRoot>().ImplementedBy<CompositionRoot>());
+            FindDuplicateFilesService dupe = new FindDuplicateFilesService();
 			dupe.FindDuplicates();
 		}
 	}

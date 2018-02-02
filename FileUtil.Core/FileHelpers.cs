@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Abstractions;
 using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Security.Cryptography;
@@ -16,7 +17,14 @@ namespace FileUtil.Core
 
 	public class FileHelpers
 	{
-		static int lastPercentUpdate = 0; 
+	    private readonly IFileSystem fileSystem;
+
+        static int lastPercentUpdate = 0;
+
+	    public FileHelpers(IFileSystem fileSystem)
+	    {
+	        this.fileSystem = fileSystem;
+	    }
 
 		internal string ToHex(byte[] bytes, bool upperCase)
 		{
@@ -104,12 +112,13 @@ namespace FileUtil.Core
 
 		public string[] WalkFilePaths(FindDuplicatesJob job)
 		{
+
 			Console.WriteLine("Walking file system paths...");
 			string[] fileSystemList = new string[] { };
 
 			try
 			{
-				fileSystemList = System.IO.Directory.GetFiles(job.Path, "*.*", System.IO.SearchOption.AllDirectories);
+				fileSystemList = fileSystem.Directory.GetFiles(job.Path, "*.*", System.IO.SearchOption.AllDirectories);
 			}
 			catch (Exception e)
 			{
