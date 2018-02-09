@@ -3,7 +3,7 @@ using FileUtil.Models.Interfaces;
 
 namespace FileUtil.Models
 {
-	public class FindDuplicatesJob: IJob
+	public class FindDuplicatesJob : IJob
 	{
 		public string Path;
 		public string[] FilesArr;

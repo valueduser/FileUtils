@@ -8,10 +8,10 @@ namespace FileUtils
 	{
 		static void Main(string[] args)
 		{
-		    var container = new WindsorContainer();
+			var container = new WindsorContainer();
 
-		    //container.Register(Component.For<ICompositionRoot>().ImplementedBy<CompositionRoot>());
-            FindDuplicateFilesService dupe = new FindDuplicateFilesService();
+			//container.Register(Component.For<ICompositionRoot>().ImplementedBy<CompositionRoot>());
+			FindDuplicateFilesService dupe = new FindDuplicateFilesService();
 			dupe.FindDuplicates();
 		}
 	}

@@ -18,8 +18,12 @@ namespace FileUtil.Core
 
 	public class DuplicateFinder
 	{
-	    private static IFileSystem fileSystem;
-        private FileHelpers _helper = new FileHelpers(fileSystem);
+		private IFileHelpers fileSystemHelper;
+
+		public DuplicateFinder(IFileHelpers fileSystemHelper)
+		{
+			this.fileSystemHelper = fileSystemHelper;
+		}
 
 		public void FindDuplicateFiles(FindDuplicatesJob job)
 		{
@@ -33,7 +37,7 @@ namespace FileUtil.Core
 					new UNCAccessWithCredentials.UNCAccessWithCredentials())
 				{
 					if (unc.NetUseWithCredentials(job.Options.Path, job.Options.User, job.Options.Domain, job.Options.Pass)
-					    || unc.LastError == 1219) // Already connected
+						|| unc.LastError == 1219) // Already connected
 					{
 						FindDuplicates(job);
 					}
@@ -77,21 +81,21 @@ namespace FileUtil.Core
 			results.ReportOrderPreference = job.Options.ReportOrderPreference;
 
 			Console.Write("Looking for duplicates...");
-			job.FilesArr = _helper.WalkFilePaths(job);
+			job.FilesArr = fileSystemHelper.WalkFilePaths(job);
 
 			int numberOfFilesFound = job.FilesArr.Length;
 
 			for (int i = 0; i < numberOfFilesFound; i++)
 			{
-			    _helper.UpdateProgress(i, numberOfFilesFound);
+				fileSystemHelper.UpdateProgress(i, numberOfFilesFound);
 				string file = job.FilesArr[i];
 				string filename;
 				long fileSize;
 
 				try
 				{
-					filename = Path.GetFileName(file);
-					fileSize = (new System.IO.FileInfo(file).Length) / 1024;
+					filename = fileSystemHelper.GetFileName(file);//Path.GetFileName(file);
+					fileSize = fileSystemHelper.GetFileSize(file); //(new System.IO.FileInfo(file).Length) / 1024;
 				}
 				catch (Exception e)
 				{
@@ -105,8 +109,9 @@ namespace FileUtil.Core
 				//}
 
 				long limit = job.Options.HashLimit; //todo
-				string hash = _helper.ToHex(_helper.HashFile(file, fileSize, limit), false);
+				string hash = fileSystemHelper.ToHex(fileSystemHelper.HashFile(file, fileSize, limit), false);
 
+				//Todo: at this point the entry could be a duplicate or not. 
 				if (!results.Duplicates.ContainsKey(hash))
 				{
 					results.Duplicates.Add(hash, new File()
@@ -129,8 +134,8 @@ namespace FileUtil.Core
 				}
 			}
 			Console.WriteLine("done.");
-		    //ReportResults(results);
-            return results;
+			//ReportResults(results);
+			return results;
 		}
 
 		internal void ReportResults(FindDuplicatesResult results)
@@ -204,7 +209,7 @@ namespace FileUtil.Core
 
 		public void ValidateJob(FindDuplicatesJob job)
 		{
-			if(!job.Options.IsLocalFileSystem && (String.IsNullOrEmpty(job.Options.User)|| String.IsNullOrEmpty(job.Options.Pass)))
+			if (!job.Options.IsLocalFileSystem && (String.IsNullOrEmpty(job.Options.User) || String.IsNullOrEmpty(job.Options.Pass)))
 			{
 				throw new ArgumentException("Remote Filesystem selected but credentials were invalid.");
 			}

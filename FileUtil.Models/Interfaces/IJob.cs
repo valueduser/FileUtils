@@ -1,6 +1,6 @@
 ﻿namespace FileUtil.Models.Interfaces
 {
-    public interface IJob
-    {
-    }
+	public interface IJob
+	{
+	}
 }

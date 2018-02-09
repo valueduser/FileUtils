@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Specialized;
 using System.Configuration;
+using System.IO.Abstractions;
 using FileUtil.Core;
 using FileUtil.Models;
 
@@ -17,8 +18,9 @@ namespace FileUtil.Service.ServiceInterfaces
 		{
 			//Read app config options or //todo console selections
 			FindDuplicatesJob job = new FindDuplicatesJob(SafeGetAppConfigs());
-			
-			FileUtil.Core.DuplicateFinder dupeFinder = new DuplicateFinder();
+
+			FileHelpers fileHelpers = new FileHelpers(new FileSystem());
+			FileUtil.Core.DuplicateFinder dupeFinder = new DuplicateFinder(fileHelpers);
 			dupeFinder.ValidateJob(job);
 			dupeFinder.FindDuplicateFiles(job);
 

@@ -10,23 +10,28 @@ using FileUtil.Models;
 
 namespace FileUtil.Core
 {
-    public interface IFileHelpers
-    {
-        string[] WalkFilePaths(FindDuplicatesJob job);
-    }
-
-	public class FileHelpers
+	public interface IFileHelpers
 	{
-	    private readonly IFileSystem fileSystem;
+		string ToHex(byte[] bytes, bool upperCase);
+		string GetFileName(string pathToFile);
+		long GetFileSize(string pathToFile);
+		byte[] HashFile(string filename, long filesize, long hashlimit = 0);
+		string[] WalkFilePaths(FindDuplicatesJob job);
+		void UpdateProgress(int currentIteration, int totalIterations);
+	}
 
-        static int lastPercentUpdate = 0;
+	public class FileHelpers : IFileHelpers
+	{
+		private readonly IFileSystem fileSystem;
 
-	    public FileHelpers(IFileSystem fileSystem)
-	    {
-	        this.fileSystem = fileSystem;
-	    }
+		static int lastPercentUpdate = 0;
 
-		internal string ToHex(byte[] bytes, bool upperCase)
+		public FileHelpers(IFileSystem fileSystem)
+		{
+			this.fileSystem = fileSystem;
+		}
+
+		public string ToHex(byte[] bytes, bool upperCase)
 		{
 			StringBuilder result = new StringBuilder(bytes.Length * 2);
 
@@ -36,7 +41,17 @@ namespace FileUtil.Core
 			return result.ToString();
 		}
 
-		internal byte[] HashFile(string filename, long filesize, long hashLimit = 0)
+		public string GetFileName(string pathToFile)
+		{
+			return fileSystem.Path.GetFileName(pathToFile);
+		}
+
+		public long GetFileSize(string pathToFile)
+		{
+			return fileSystem.FileInfo.FromFileName(pathToFile).Length / 1024;
+		}
+
+		public byte[] HashFile(string filename, long filesize, long hashLimit = 0)
 		{
 			if (hashLimit < filesize && hashLimit != 0)
 			{
@@ -61,7 +76,7 @@ namespace FileUtil.Core
 						}
 					}
 				}
-				
+
 			}
 			else
 			{
@@ -86,30 +101,6 @@ namespace FileUtil.Core
 			}
 		}
 
-		internal bool ValidateFileNames(string rootPath)
-		{
-			Console.WriteLine("Validating the file system...");
-			IEnumerable<string> fileSystemList = new List<string>();
-			try
-			{
-				fileSystemList = Directory.EnumerateFileSystemEntries(rootPath, "*", SearchOption.AllDirectories);
-			}
-			catch(System.Exception ex)
-			{
-				Console.WriteLine(ex.Message);
-			}
-
-			Console.WriteLine($"Found {fileSystemList.Count()} entries.");
-			Console.WriteLine("done.");
-
-			if (fileSystemList.Any()) //todo make this more meaningful
-			{
-				return true;
-			}
-
-			return false;
-		}
-
 		public string[] WalkFilePaths(FindDuplicatesJob job)
 		{
 
@@ -128,7 +119,7 @@ namespace FileUtil.Core
 			Console.WriteLine("done.");
 			int filesFound = fileSystemList.Length;
 			Console.WriteLine($"Found {filesFound} files.");
-			
+
 			return fileSystemList;
 		}
 

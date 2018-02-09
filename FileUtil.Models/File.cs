@@ -10,5 +10,42 @@ namespace FileUtil.Models
 		public string Hash { get; set; }
 		public List<string> Duplicates { get; set; }
 		public List<string> HashCollisions { get; set; }
+
+		public override bool Equals(object obj)
+		{
+			if (obj == null || GetType() != obj.GetType())
+			{
+				return false;
+			}
+
+			File objresult = (File)obj;
+
+			if (!Filename.Equals(objresult.Filename) ||
+			    !FullPath.Equals(objresult.FullPath) ||
+			    !SizeInMB.Equals(objresult.SizeInMB) ||
+			    !Hash.Equals(objresult.Hash) ||
+			    Duplicates.Count != objresult.Duplicates.Count ||
+			    HashCollisions.Count != objresult.HashCollisions.Count)
+			{
+				return false;
+			}
+
+			return (CompareLists(Duplicates, objresult.Duplicates) && CompareLists(HashCollisions, objresult.HashCollisions));
+		}
+
+		private bool CompareLists(List<string> list1, List<string> list2)
+		{
+			for (int i = 0; i < list1.Count; i++)
+			{
+				if (list1[i] != list2[i])
+					return false;
+			}
+			return true;
+		}
+
+		public override int GetHashCode()
+		{
+			return base.GetHashCode();
+		}
 	}
 }

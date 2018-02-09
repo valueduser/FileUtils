@@ -1,41 +1,26 @@
 ﻿using NUnit.Framework;
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.IO.Abstractions;
 using FileUtil.Core;
 using FileUtil.Models;
 using FileUtil.Models.Interfaces;
 using FileUtil.Service.ServiceInterfaces;
 using Moq;
+using File = FileUtil.Models.File;
 
 namespace FileUtils
 {
 	[TestFixture()]
 	public class DuplicateFinderTests
 	{
-        //Todo mock fileshare, AppConfigs
+		[SetUp]
+		public void Setup()
+		{
+		}
 
-	    private static FindDuplicateOptions options = new FindDuplicateOptions()
-	    {
-	        Domain = "",
-	        HashLimit = 0,
-	        IsLocalFileSystem = true,
-	        Pass = "",
-	        User = "",
-	        Path = @".\"
-	    };
-	    Mock<FindDuplicatesJob> mockJob = new Mock<FindDuplicatesJob>(options);
-        //FindDuplicatesJob(FindDuplicateOptions options)
-
-
-        private DuplicateFinder sut = new DuplicateFinder();
-
-        [SetUp]
-	    public void Setup()
-	    {
-	        //DuplicateFinder sut = new DuplicateFinder(); //todo mock
-            
-        }
-
-        [Test()]
+		[Test()]
 		public void Canary()
 		{
 			Assert.IsTrue(true);
@@ -44,30 +29,46 @@ namespace FileUtils
 		[Test()]
 		public void CanCallFindDuplicates()
 		{
-		    FindDuplicatesResult expectedResult = new FindDuplicatesResult();
-            var mockFileHelpers = new Mock<IFileHelpers>();
+			FindDuplicatesResult expectedResult = new FindDuplicatesResult();
+			File expectedDuplicateFile = new File()
+			{
+				Filename = "BOOTNXT",
+				SizeInMB = 626,
+				FullPath = @"C:\BOOTNXT",
+				Hash = "bbaaddbbeeeeff",
+				Duplicates = new List<string>(),
+				HashCollisions = new List<string>()
+			};
+			Dictionary<string, File> expectedDuplicates = new Dictionary<string, File>();
+			expectedDuplicates.Add(expectedDuplicateFile.Hash, expectedDuplicateFile);
+			expectedResult.Duplicates = expectedDuplicates;
+			expectedResult.ReportOrderPreference = "Alphabetical";
 
-            // Doesn't seem to be mocking the call correctly
-            mockFileHelpers.Setup(f => f.WalkFilePaths(It.IsAny<FindDuplicatesJob>())).Returns(new string[] {});
+			FindDuplicateOptions options = new FindDuplicateOptions()
+			{
+				Domain = "",
+				HashLimit = 0,
+				IsLocalFileSystem = true,
+				Pass = "",
+				User = "",
+				Path = @".\"
+			};
+			FindDuplicatesJob testJob = new FindDuplicatesJob(options);
 
-            //string path = "testPath";
-            //FindDuplicateOptions options = new FindDuplicateOptions()
-            //{
-            //	Domain = "",
-            //	HashLimit = 0,
-            //	IsLocalFileSystem = true,
-            //	Pass = "",
-            //	User = "",
-            //	Path = @".\"
-            //};
-            //FindDuplicatesJob job = new FindDuplicatesJob(options); // todo mock
-            //sut.FindDuplicateFiles(job);
+			string[] testFiles = new[] { @"C:\BOOTNXT" };
 
-            //Assert.IsTrue(true);
-		    FindDuplicatesResult actualResult = sut.FindDuplicates(mockJob.Object); //sut.FindDuplicateFiles(mockJob.Object);
-            Assert.AreEqual(expectedResult, actualResult);
+			Mock<IFileHelpers> fileHelpers = new Moq.Mock<IFileHelpers>();
+			fileHelpers.Setup(a => a.GetFileName(It.IsAny<string>())).Returns("BOOTNXT");
+			fileHelpers.Setup(a => a.GetFileSize(It.IsAny<string>())).Returns(626);
+			fileHelpers.Setup(f => f.WalkFilePaths(It.IsAny<FindDuplicatesJob>())).Returns(testFiles);
+
+			byte[] testBytes = new byte[] { 0xBB, 0xAA, 0xDD, 0xBB, 0xEE, 0xEE, 0xFF };
+			fileHelpers.Setup(h => h.HashFile(It.IsAny<string>(), It.IsAny<long>(), It.IsAny<long>())).Returns(testBytes);
+			fileHelpers.Setup(x => x.ToHex(It.IsAny<byte[]>(), It.IsAny<bool>())).Returns("bbaaddbbeeeeff");
+
+			DuplicateFinder sut = new DuplicateFinder(fileHelpers.Object);
+			FindDuplicatesResult actualResult = sut.FindDuplicates(testJob);
+			Assert.IsTrue(expectedResult.Equals(actualResult));
 		}
-
-        //public FindDuplicatesResult FindDuplicates(FindDuplicatesJob job)
-    }
+	}
 }
