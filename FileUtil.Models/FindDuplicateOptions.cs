@@ -11,6 +11,7 @@ namespace FileUtil.Models
 		public string Domain { get; set; }
 		public string Path { get; set; }
 		public int HashLimit { get; set; }
+		public string ReportOrderPreference { get; set; }
 
 		public FindDuplicateOptions()
 		{
@@ -20,19 +21,24 @@ namespace FileUtil.Models
 			Domain = "";
 			Path = "";
 			HashLimit = 0;
+			ReportOrderPreference = "Alphabetical";
 		}
 
 		public FindDuplicateOptions(NameValueCollection appSettings)
 		{
-			bool isLocalFileSystem = false;
+			bool isLocalFileSystem = true;
 			Boolean.TryParse(appSettings["isLocalFileSystem"], out isLocalFileSystem);
+			IsLocalFileSystem = isLocalFileSystem;
+
 			User = appSettings["NetworkShareUser"] ?? "User Not Found";
 			Pass = appSettings["NetworkSharePassword"] ?? "Password Not Found";
 			Domain = appSettings["NetworkShareDomain"] ?? "Domain Not Found";
 			Path = appSettings["NetworkShareUncPath"] ?? "UNC Path Not Found";
+
 			int hashLimit = 0;
 			Int32.TryParse(appSettings["HashSizeLimitInMB"], out hashLimit);
 			HashLimit = hashLimit;
+			ReportOrderPreference = appSettings["ReportOrderPreference"] ?? "Alphabetical";
 		}
 	}
 }

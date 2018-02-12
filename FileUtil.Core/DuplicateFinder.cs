@@ -1,31 +1,32 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Abstractions;
+using System.Linq;
 using System.Text;
 using FileUtil.Models;
 using File = FileUtil.Models.File;
 
 namespace FileUtil.Core
 {
-	public interface IFindDuplicates
+	public interface IDuplicateFinder
 	{
 		void ValidateJob(FindDuplicatesJob job);
-		void RunJob(FindDuplicatesJob job);
-		void WalkFilePaths(FindDuplicatesJob job);
-		void FindDuplicates(FindDuplicatesJob job);
-		void Execute(FindDuplicatesJob job);
+		FindDuplicatesResult FindDuplicates(FindDuplicatesJob job);
+		void FindDuplicateFiles(FindDuplicatesJob job);
 	}
-
 
 	public class DuplicateFinder
 	{
-		private String[] _fileArr;
-		private Dictionary<string, File> _fileDictionary;
+		private IFileHelpers fileSystemHelper;
 
-		public void RunJob(FindDuplicatesJob job)
+		public DuplicateFinder(IFileHelpers fileSystemHelper)
 		{
-			ValidateJob(job);
+			this.fileSystemHelper = fileSystemHelper;
+		}
 
+		public void FindDuplicateFiles(FindDuplicatesJob job)
+		{
 			if (job.Options.IsLocalFileSystem)
 			{
 				FindDuplicates(job);
@@ -36,7 +37,7 @@ namespace FileUtil.Core
 					new UNCAccessWithCredentials.UNCAccessWithCredentials())
 				{
 					if (unc.NetUseWithCredentials(job.Options.Path, job.Options.User, job.Options.Domain, job.Options.Pass)
-					    || unc.LastError == 1219) // Already connected
+						|| unc.LastError == 1219) // Already connected
 					{
 						FindDuplicates(job);
 					}
@@ -61,6 +62,9 @@ namespace FileUtil.Core
 							case 53:
 								Console.WriteLine("Network path not found.");
 								break;
+							case 5:
+								Console.WriteLine("Access denied.");
+								break;
 							default:
 								Console.WriteLine("Unknown error.");
 								break;
@@ -71,24 +75,27 @@ namespace FileUtil.Core
 			}
 		}
 
-		public void Execute(FindDuplicatesJob job)
+		public FindDuplicatesResult FindDuplicates(FindDuplicatesJob job)
 		{
-			Console.Write("Looking for duplicates...");
-			//todo: progress
+			FindDuplicatesResult results = new FindDuplicatesResult();
+			results.ReportOrderPreference = job.Options.ReportOrderPreference;
 
-			int numberOfFilesFound = _fileArr.Length;
-			_fileDictionary = new Dictionary<string, File>();
+			Console.Write("Looking for duplicates...");
+			job.FilesArr = fileSystemHelper.WalkFilePaths(job);
+
+			int numberOfFilesFound = job.FilesArr.Length;
 
 			for (int i = 0; i < numberOfFilesFound; i++)
 			{
-				string file = _fileArr[i];
+				fileSystemHelper.UpdateProgress(i, numberOfFilesFound);
+				string file = job.FilesArr[i];
 				string filename;
 				long fileSize;
 
 				try
 				{
-					filename = Path.GetFileName(file);
-					fileSize = (new System.IO.FileInfo(file).Length) / 1024;
+					filename = fileSystemHelper.GetFileName(file);//Path.GetFileName(file);
+					fileSize = fileSystemHelper.GetFileSize(file); //(new System.IO.FileInfo(file).Length) / 1024;
 				}
 				catch (Exception e)
 				{
@@ -102,11 +109,12 @@ namespace FileUtil.Core
 				//}
 
 				long limit = job.Options.HashLimit; //todo
-				string hash = FileHelpers.ToHex(FileHelpers.HashFile(file, fileSize, limit), false);
+				string hash = fileSystemHelper.ToHex(fileSystemHelper.HashFile(file, fileSize, limit), false);
 
-				if (!_fileDictionary.ContainsKey(hash))
+				//Todo: at this point the entry could be a duplicate or not. 
+				if (!results.Duplicates.ContainsKey(hash))
 				{
-					_fileDictionary.Add(hash, new File()
+					results.Duplicates.Add(hash, new File()
 					{
 						Filename = filename,
 						SizeInMB = fileSize,
@@ -116,33 +124,56 @@ namespace FileUtil.Core
 						HashCollisions = new List<string>()
 					});
 				}
-				else if (_fileDictionary.ContainsKey(hash) && fileSize == _fileDictionary[hash].SizeInMB)
+				else if (results.Duplicates.ContainsKey(hash) && fileSize == results.Duplicates[hash].SizeInMB)
 				{
-					_fileDictionary[hash].Duplicates.Add(file);
+					results.Duplicates[hash].Duplicates.Add(file);
 				}
 				else
 				{
-					_fileDictionary[hash].HashCollisions.Add(file);
+					results.Duplicates[hash].HashCollisions.Add(file);
 				}
 			}
 			Console.WriteLine("done.");
+			//ReportResults(results);
+			return results;
 		}
 
-		//todo: reorder the methods in this file in a sensible way
-		public void FindDuplicates(FindDuplicatesJob job)
+		internal void ReportResults(FindDuplicatesResult results)
 		{
-			_fileArr = FileHelpers.WalkFilePaths(job);
-			Execute(job);
-			//ReportResults();
-			Console.ReadKey();
-		}
+			//Todo pull the file printing work out into a separate class
+			//Todo print number of duplicates to the console and only bother with a text file if dupes > 0
 
-		internal void ReportResults()
-		{
+			var reportDictionary = new Dictionary<string, File>();
+			if (results.ReportOrderPreference.Equals(Enums.ReportOrder.FileSizeDesc.ToString()))
+			{
+				foreach (var duplicate in results.Duplicates.OrderByDescending(i => i.Value.SizeInMB))
+				{
+					reportDictionary.Add(duplicate.Key, duplicate.Value);
+				}
+			}
+			else if (results.ReportOrderPreference.Equals(Enums.ReportOrder.FileSizeAsc.ToString()))
+			{
+				foreach (var duplicate in results.Duplicates.OrderBy(i => i.Value.SizeInMB))
+				{
+					reportDictionary.Add(duplicate.Key, duplicate.Value);
+				}
+			}
+			else if (results.ReportOrderPreference.Equals(Enums.ReportOrder.Alphabetical.ToString()))
+			{
+				foreach (var duplicate in results.Duplicates.OrderBy(i => i.Value.Filename))
+				{
+					reportDictionary.Add(duplicate.Key, duplicate.Value);
+				}
+			}
+			else
+			{
+				reportDictionary = results.Duplicates;
+			}
+
 			StringBuilder sb = new StringBuilder();
 			sb.Append("========= DUPLICATE FILE RESULTS =========\n\n");
 
-			foreach (var file in _fileDictionary)
+			foreach (var file in reportDictionary)
 			{
 				if (file.Value.Duplicates.Count > 0)
 				{
@@ -172,20 +203,16 @@ namespace FileUtil.Core
 			Console.WriteLine($"Writing report file to {pwd + outputFileName}.txt"); //todo: make configurable
 			sb.Append("\n========= END =========");
 			System.IO.File.WriteAllText(pwd + outputFileName + ".txt", sb.ToString());
+			Console.WriteLine("Done.");
 			Console.ReadKey();
 		}
 
 		public void ValidateJob(FindDuplicatesJob job)
 		{
-			if(!job.Options.IsLocalFileSystem && (String.IsNullOrEmpty(job.Options.User)|| String.IsNullOrEmpty(job.Options.Pass)))
+			if (!job.Options.IsLocalFileSystem && (String.IsNullOrEmpty(job.Options.User) || String.IsNullOrEmpty(job.Options.Pass)))
 			{
 				throw new ArgumentException("Remote Filesystem selected but credentials were invalid.");
 			}
-
-			//if (!FileHelpers.ValidateFileNames(job.Path))
-			//{
-			//	throw new ArgumentException();
-			//}
 		}
 	}
 }

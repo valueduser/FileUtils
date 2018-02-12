@@ -1,17 +1,16 @@
 ﻿using System.Collections.Specialized;
+using FileUtil.Models.Interfaces;
 
 namespace FileUtil.Models
 {
-	public class FindDuplicatesJob
+	public class FindDuplicatesJob : IJob
 	{
 		public string Path;
 		public string[] FilesArr;
 		public FindDuplicateOptions Options;
-		private NameValueCollection _appSettings;
 
 		public FindDuplicatesJob(NameValueCollection appSettings)
 		{
-			this._appSettings = appSettings;
 			Options = new FindDuplicateOptions(appSettings);
 			Path = Options.Path;
 		}
