@@ -27,9 +27,12 @@ namespace FileUtil.Core
 
 		public void FindDuplicateFiles(FindDuplicatesJob job)
 		{
+			List<File> knownFiles = new List<File>();
 			if (job.Options.IsLocalFileSystem)
 			{
-				FindDuplicates(job);
+				//FindDuplicates(job);
+				knownFiles = GetListOfKnownFiles(job);
+				PopulateDuplicateResult(knownFiles);
 			}
 			else
 			{
@@ -39,7 +42,9 @@ namespace FileUtil.Core
 					if (unc.NetUseWithCredentials(job.Options.Path, job.Options.User, job.Options.Domain, job.Options.Pass)
 						|| unc.LastError == 1219) // Already connected
 					{
-						FindDuplicates(job);
+						knownFiles = GetListOfKnownFiles(job);
+						PopulateDuplicateResult(knownFiles);
+						//FindDuplicates(job);
 					}
 					else
 					{
@@ -73,6 +78,55 @@ namespace FileUtil.Core
 					}
 				}
 			}
+		}
+
+		public List<File> GetListOfKnownFiles(FindDuplicatesJob job)
+		{
+			List<File> knownFiles = new List<File>();
+			string[] files = fileSystemHelper.WalkFilePaths(job);
+
+			foreach (string filePath in files)
+			{
+				if (String.IsNullOrEmpty(filePath))
+				{
+					long fileSize = fileSystemHelper.GetFileSize(filePath);
+					knownFiles.Add(new File
+					{
+						FullPath = filePath,
+						Filename = fileSystemHelper.GetFileName(filePath),
+						SizeInMB = fileSize,
+						Hash = fileSystemHelper.GetHashedValue(filePath, fileSize)
+					});
+				}	
+			}
+			return knownFiles;
+		}
+
+		public FindDuplicatesResult PopulateDuplicateResult(List<File> knownFiles)
+		{
+			FindDuplicatesResult results = new FindDuplicatesResult();
+			foreach (File file in knownFiles)
+			{
+				if (!results.Duplicates.ContainsKey(file.Hash)) //new entry
+				{
+					results.Duplicates.Add(file.Hash, file);
+					//write results to the duplicates table
+					//write results to the file table
+				}
+				else if (results.Duplicates.ContainsKey(file.Hash) && file.SizeInMB == results.Duplicates[file.Hash].SizeInMB) //duplicate
+				{
+					//results.Duplicates[file.Hash]
+					//results.Duplicates.Add();
+					//write results to the duplicates table
+					//write results to the file table
+				}
+				else
+				{
+					//results.Duplicates[file.Hash].HashCollisions.Add(file);
+				}
+			}
+
+			return results;
 		}
 
 		public FindDuplicatesResult FindDuplicates(FindDuplicatesJob job)

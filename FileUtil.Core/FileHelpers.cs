@@ -18,6 +18,7 @@ namespace FileUtil.Core
 		byte[] HashFile(string filename, long filesize, long hashlimit = 0);
 		string[] WalkFilePaths(FindDuplicatesJob job);
 		void UpdateProgress(int currentIteration, int totalIterations);
+		string GetHashedValue(string pathToFile, long fileSize, long hashLimit = 0, bool upperCase = false);
 	}
 
 	public class FileHelpers : IFileHelpers
@@ -49,6 +50,11 @@ namespace FileUtil.Core
 		public long GetFileSize(string pathToFile)
 		{
 			return fileSystem.FileInfo.FromFileName(pathToFile).Length / 1024;
+		}
+
+		public string GetHashedValue(string pathToFile, long fileSize, long hashLimit = 0, bool upperCase = false)
+		{
+			return ToHex(HashFile(pathToFile, fileSize, hashLimit), upperCase);
 		}
 
 		public byte[] HashFile(string filename, long filesize, long hashLimit = 0)
