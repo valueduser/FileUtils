@@ -5,6 +5,7 @@ using System.IO.Abstractions;
 using System.Linq;
 using System.Text;
 using FileUtil.Models;
+using Konsole;
 using File = FileUtil.Models.File;
 
 namespace FileUtil.Core
@@ -87,7 +88,7 @@ namespace FileUtil.Core
 
 			foreach (string filePath in files)
 			{
-				if (String.IsNullOrEmpty(filePath))
+				if (!String.IsNullOrEmpty(filePath))
 				{
 					long fileSize = fileSystemHelper.GetFileSize(filePath);
 					knownFiles.Add(new File
@@ -105,9 +106,20 @@ namespace FileUtil.Core
 		public FindDuplicatesResult PopulateDuplicateResult(List<File> knownFiles)
 		{
 			FindDuplicatesResult results = new FindDuplicatesResult();
-			foreach (File file in knownFiles)
-			{
-				if (!results.Duplicates.ContainsKey(file.Hash)) //new entry
+
+		    var pb = new ProgressBar(PbStyle.DoubleLine, knownFiles.Count);
+		    int _lastIncrement = 0;
+		    pb.Refresh(0, "Processing discovered files...");
+		    int i = 0;
+            foreach (File file in knownFiles)
+            {
+                
+			    if (Math.Floor(i * 100.0 / knownFiles.Count) > _lastIncrement)
+			    {
+			        pb.Refresh(i, file.Filename);
+			        _lastIncrement = (i * 100 / knownFiles.Count);
+			    }
+                if (!results.Duplicates.ContainsKey(file.Hash)) //new entry
 				{
 					results.Duplicates.Add(file.Hash, file);
 					//write results to the duplicates table
@@ -124,9 +136,22 @@ namespace FileUtil.Core
 				{
 					//results.Duplicates[file.Hash].HashCollisions.Add(file);
 				}
-			}
 
-			return results;
+                i++;
+            }
+
+		    Console.WriteLine(results.Duplicates.Count);
+		    foreach (var value in results.Duplicates.Values)
+		    {
+		        if (value.HashCollisions != null && value.HashCollisions.Count > 0)
+		        {
+		            Console.WriteLine(value.HashCollisions.Count);
+		            Console.WriteLine(value.HashCollisions.ToString());
+		        }
+
+            }
+
+            return results;
 		}
 
 		public FindDuplicatesResult FindDuplicates(FindDuplicatesJob job)
@@ -139,14 +164,23 @@ namespace FileUtil.Core
 
 			int numberOfFilesFound = job.FilesArr.Length;
 
-			for (int i = 0; i < numberOfFilesFound; i++)
+            var pb = new ProgressBar(PbStyle.DoubleLine, numberOfFilesFound);
+            int _lastIncrement = 0;
+            pb.Refresh(0, "Processing discovered files...");
+
+            for (int i = 0; i < numberOfFilesFound; i++)
 			{
-				fileSystemHelper.UpdateProgress(i, numberOfFilesFound);
-				string file = job.FilesArr[i];
+                string file = job.FilesArr[i];
 				string filename;
 				long fileSize;
 
-				try
+                if (Math.Floor(i * 100.0 / numberOfFilesFound) >= _lastIncrement)
+                {
+                    pb.Refresh(i, file);
+                    _lastIncrement = (i * 100 / numberOfFilesFound);
+                }
+
+                try
 				{
 					filename = fileSystemHelper.GetFileName(file);//Path.GetFileName(file);
 					fileSize = fileSystemHelper.GetFileSize(file); //(new System.IO.FileInfo(file).Length) / 1024;
