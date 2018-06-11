@@ -4,12 +4,13 @@ namespace FileUtil.Models
 {
 	public class File
 	{
+		public int Id { get; set; }
 		public string Filename { get; set; }
 		public string FullPath { get; set; }
 		public long SizeInMB { get; set; }
 		public string Hash { get; set; }
-		public List<string> Duplicates { get; set; }
-		public List<string> HashCollisions { get; set; }
+		public List<string> Duplicates { get; set; } //todo remove
+		public List<string> HashCollisions { get; set; } //todo remove
 
 		public override bool Equals(object obj)
 		{
