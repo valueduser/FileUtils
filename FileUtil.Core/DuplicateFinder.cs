@@ -1,8 +1,7 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Abstractions;
-using System.Linq;
 using System.Text;
 using FileUtil.Models;
 using Konsole;
@@ -12,14 +11,19 @@ namespace FileUtil.Core
 {
 	public interface IDuplicateFinder
 	{
-		void ValidateJob(FindDuplicatesJob job);
-		FindDuplicatesResult FindDuplicates(FindDuplicatesJob job);
 		void FindDuplicateFiles(FindDuplicatesJob job);
+
+		string[] GetFilePaths(FindDuplicatesJob job);
+
+		List<File> PopulateFileMetaData(string[] files);
 	}
 
 	public class DuplicateFinder
 	{
 		private IFileHelpers fileSystemHelper;
+
+		private List<File> _duplicates = new List<File>();
+		private ConcurrentDictionary<string, List<File>> _hashTable = new ConcurrentDictionary<string, List<File>>();
 
 		public DuplicateFinder(IFileHelpers fileSystemHelper)
 		{
@@ -28,12 +32,12 @@ namespace FileUtil.Core
 
 		public void FindDuplicateFiles(FindDuplicatesJob job)
 		{
-			List<File> knownFiles = new List<File>();
+			string[] filePaths;
 			if (job.Options.IsLocalFileSystem)
 			{
-				//FindDuplicates(job);
-				knownFiles = GetListOfKnownFiles(job);
-				PopulateDuplicateResult(knownFiles);
+				filePaths = GetFilePaths(job);
+				PopulateFileMetaData(filePaths);
+				ReportResults();
 			}
 			else
 			{
@@ -43,9 +47,10 @@ namespace FileUtil.Core
 					if (unc.NetUseWithCredentials(job.Options.Path, job.Options.User, job.Options.Domain, job.Options.Pass)
 						|| unc.LastError == 1219) // Already connected
 					{
-						knownFiles = GetListOfKnownFiles(job);
-						PopulateDuplicateResult(knownFiles);
-						//FindDuplicates(job);
+						filePaths = GetFilePaths(job);
+						PopulateFileMetaData(filePaths);
+						ReportResults();
+						//PersistFile
 					}
 					else
 					{
@@ -72,7 +77,7 @@ namespace FileUtil.Core
 								Console.WriteLine("Access denied.");
 								break;
 							default:
-								Console.WriteLine("Unknown error.");
+								Console.WriteLine($"Unknown error. {unc.LastError}");
 								break;
 						}
 						Console.ReadKey();
@@ -81,218 +86,109 @@ namespace FileUtil.Core
 			}
 		}
 
-		public List<File> GetListOfKnownFiles(FindDuplicatesJob job)
+		public string[] GetFilePaths(FindDuplicatesJob job)
+		{
+			//Since we don't yet know how many files will be found, progress reporting is not trivial.
+			Console.WriteLine($"Traversing {job.Path}...");
+			string[] files = fileSystemHelper.WalkFilePaths(job);
+			Console.WriteLine("...done.");
+			return files;
+		}
+
+		public List<File> PopulateFileMetaData(string[] files) //todo do I need to return List??
 		{
 			List<File> knownFiles = new List<File>();
-			string[] files = fileSystemHelper.WalkFilePaths(job);
 
+			Console.WriteLine("Populating metadata for discovered files...");
+			var pb = new ProgressBar(PbStyle.DoubleLine, files.Length);
+			int lastIncrement = 0;
+			pb.Refresh(0, "Initializing...");
+
+			int i = 0;
 			foreach (string filePath in files)
 			{
+				if (Math.Floor(i * 100.0 / files.Length) > lastIncrement || i == files.Length)
+				{
+					pb.Refresh(i, filePath);
+					lastIncrement = (i * 100 / files.Length);
+				}
+
 				if (!String.IsNullOrEmpty(filePath))
 				{
 					long fileSize = fileSystemHelper.GetFileSize(filePath);
-					knownFiles.Add(new File
+					File tempFile = new File
 					{
 						FullPath = filePath,
 						Filename = fileSystemHelper.GetFileName(filePath),
-						SizeInMB = fileSize,
+						SizeInMegaBytes = fileSize,
+						//todo: add option to hash only a portion of the file AND / OR check the files table. if the filename && size && path are the same as an entry in the files table, don't bother hashing (optionally) - just use the value from the table
 						Hash = fileSystemHelper.GetHashedValue(filePath, fileSize)
-					});
-				}	
+					};
+					tempFile.HasDuplicates = AddToHashTable(tempFile); //todo if hasDuplicates, add to the duplicate object in memory
+
+					knownFiles.Add(tempFile);
+				}
+				i++;
 			}
+			Console.WriteLine("\n...done.");
 			return knownFiles;
 		}
 
-		public FindDuplicatesResult PopulateDuplicateResult(List<File> knownFiles)
+		public bool AddToHashTable(File file)
 		{
-			FindDuplicatesResult results = new FindDuplicatesResult();
+			//_hashTable.AddOrUpdate(file.Hash, new List<File>() {file}, (key, value) => { value.Add(file); return value; });
+			//if we can determine if it was added, _duplicates.Add(file);
 
-		    var pb = new ProgressBar(PbStyle.DoubleLine, knownFiles.Count);
-		    int _lastIncrement = 0;
-		    pb.Refresh(0, "Processing discovered files...");
-		    int i = 0;
-            foreach (File file in knownFiles)
-            {
-                
-			    if (Math.Floor(i * 100.0 / knownFiles.Count) > _lastIncrement)
-			    {
-			        pb.Refresh(i, file.Filename);
-			        _lastIncrement = (i * 100 / knownFiles.Count);
-			    }
-                if (!results.Duplicates.ContainsKey(file.Hash)) //new entry
-				{
-					results.Duplicates.Add(file.Hash, file);
-					//write results to the duplicates table
-					//write results to the file table
-				}
-				else if (results.Duplicates.ContainsKey(file.Hash) && file.SizeInMB == results.Duplicates[file.Hash].SizeInMB) //duplicate
-				{
-					//results.Duplicates[file.Hash]
-					//results.Duplicates.Add();
-					//write results to the duplicates table
-					//write results to the file table
-				}
-				else
-				{
-					//results.Duplicates[file.Hash].HashCollisions.Add(file);
-				}
+			if (!_hashTable.ContainsKey(file.Hash))
+			{
+				_hashTable.GetOrAdd(file.Hash, new List<File>() { file });
 
-                i++;
-            }
+				return false;
+			}
 
-		    Console.WriteLine(results.Duplicates.Count);
-		    foreach (var value in results.Duplicates.Values)
-		    {
-		        if (value.HashCollisions != null && value.HashCollisions.Count > 0)
-		        {
-		            Console.WriteLine(value.HashCollisions.Count);
-		            Console.WriteLine(value.HashCollisions.ToString());
-		        }
+			_hashTable.TryGetValue(file.Hash, out var tempList);
 
-            }
+			if (tempList != null)
+			{
+				tempList.Add(file);
+				_hashTable[file.Hash] = tempList;
+			}
 
-            return results;
+			_duplicates.Add(file);
+			return true;
 		}
 
-		public FindDuplicatesResult FindDuplicates(FindDuplicatesJob job)
+		internal void ReportResults()
 		{
-			FindDuplicatesResult results = new FindDuplicatesResult();
-			results.ReportOrderPreference = job.Options.ReportOrderPreference;
-
-			Console.Write("Looking for duplicates...");
-			job.FilesArr = fileSystemHelper.WalkFilePaths(job);
-
-			int numberOfFilesFound = job.FilesArr.Length;
-
-            var pb = new ProgressBar(PbStyle.DoubleLine, numberOfFilesFound);
-            int _lastIncrement = 0;
-            pb.Refresh(0, "Processing discovered files...");
-
-            for (int i = 0; i < numberOfFilesFound; i++)
-			{
-                string file = job.FilesArr[i];
-				string filename;
-				long fileSize;
-
-                if (Math.Floor(i * 100.0 / numberOfFilesFound) >= _lastIncrement)
-                {
-                    pb.Refresh(i, file);
-                    _lastIncrement = (i * 100 / numberOfFilesFound);
-                }
-
-                try
-				{
-					filename = fileSystemHelper.GetFileName(file);//Path.GetFileName(file);
-					fileSize = fileSystemHelper.GetFileSize(file); //(new System.IO.FileInfo(file).Length) / 1024;
-				}
-				catch (Exception e)
-				{
-					Console.WriteLine($"Error in path: {file}. {e}");
-					continue;
-				}
-				//if (fileSize > 2097152) //todo: make configurable
-				//{
-				//	Console.WriteLine($"File {filename} too large to hash. {fileSize}");
-				//	continue;
-				//}
-
-				long limit = job.Options.HashLimit; //todo
-				string hash = fileSystemHelper.ToHex(fileSystemHelper.HashFile(file, fileSize, limit), false);
-
-				//Todo: at this point the entry could be a duplicate or not. 
-				if (!results.Duplicates.ContainsKey(hash))
-				{
-					results.Duplicates.Add(hash, new File()
-					{
-						Filename = filename,
-						SizeInMB = fileSize,
-						FullPath = file,
-						Hash = hash,
-						Duplicates = new List<string>(),
-						HashCollisions = new List<string>()
-					});
-				}
-				else if (results.Duplicates.ContainsKey(hash) && fileSize == results.Duplicates[hash].SizeInMB)
-				{
-					results.Duplicates[hash].Duplicates.Add(file);
-				}
-				else
-				{
-					results.Duplicates[hash].HashCollisions.Add(file);
-				}
-			}
-			Console.WriteLine("done.");
-			//ReportResults(results);
-			return results;
-		}
-
-		internal void ReportResults(FindDuplicatesResult results)
-		{
-			//Todo pull the file printing work out into a separate class
-			//Todo print number of duplicates to the console and only bother with a text file if dupes > 0
-
-			var reportDictionary = new Dictionary<string, File>();
-			if (results.ReportOrderPreference.Equals(Enums.ReportOrder.FileSizeDesc.ToString()))
-			{
-				foreach (var duplicate in results.Duplicates.OrderByDescending(i => i.Value.SizeInMB))
-				{
-					reportDictionary.Add(duplicate.Key, duplicate.Value);
-				}
-			}
-			else if (results.ReportOrderPreference.Equals(Enums.ReportOrder.FileSizeAsc.ToString()))
-			{
-				foreach (var duplicate in results.Duplicates.OrderBy(i => i.Value.SizeInMB))
-				{
-					reportDictionary.Add(duplicate.Key, duplicate.Value);
-				}
-			}
-			else if (results.ReportOrderPreference.Equals(Enums.ReportOrder.Alphabetical.ToString()))
-			{
-				foreach (var duplicate in results.Duplicates.OrderBy(i => i.Value.Filename))
-				{
-					reportDictionary.Add(duplicate.Key, duplicate.Value);
-				}
-			}
-			else
-			{
-				reportDictionary = results.Duplicates;
-			}
-
 			StringBuilder sb = new StringBuilder();
 			sb.Append("========= DUPLICATE FILE RESULTS =========\n\n");
 
-			foreach (var file in reportDictionary)
+			sb.Append($"Found {_duplicates.Count} duplicates.\n");
+			if (_duplicates.Count > 0)
 			{
-				if (file.Value.Duplicates.Count > 0)
+				foreach (File duplicateEntry in _duplicates)
 				{
-					sb.Append($"MD5 Hash: {file.Key} ({file.Value.SizeInMB:0.00} MB) is shared by the following files: \n");
-					sb.Append($"{file.Value.FullPath,-10}\n");
-					foreach (var dupe in file.Value.Duplicates)
+					sb.Append($"MD5 Hash: {duplicateEntry.Hash} ({duplicateEntry.SizeInMegaBytes:0.00} MB) is shared by the following files: \n");
+					sb.Append($"\t{duplicateEntry.FullPath,-10}\n");
+
+					if (_hashTable.ContainsKey(duplicateEntry.Hash))
 					{
-						sb.Append($"\t{dupe,-10}\n");
+						foreach (File tempFile in _hashTable[duplicateEntry.Hash])
+						{
+							if (tempFile.FullPath != duplicateEntry.FullPath)
+							{
+								sb.Append($"\t{tempFile.FullPath}");
+								sb.Append("\n");
+							}
+						}
+						sb.Append("\n");
 					}
-					sb.Append("\n");
-				}
-				if (file.Value.HashCollisions.Count > 0)
-				{
-					sb.Append($"MD5 Hash: {file.Key} is shared by the following files with differing file sizes: \n");
-					sb.Append($"{file.Value.FullPath,-10}\n");
-					foreach (var collision in file.Value.HashCollisions)
-					{
-						sb.Append($"\t{collision,-10}\n : {file.Value.SizeInMB:0.00} MB");
-					}
-					sb.Append("\n");
 				}
 			}
-
 			string pwd = Path.GetFullPath(@".\");
-			string outputFileName =
-				$"Dupes_{DateTime.UtcNow.Month}.{DateTime.UtcNow.Day}.{DateTime.UtcNow.Year}-{DateTime.UtcNow.Hour}_{DateTime.UtcNow.Minute}";
+			string outputFileName = $"Duplicates_{DateTime.UtcNow.Month}.{DateTime.UtcNow.Day}.{DateTime.UtcNow.Year}-{DateTime.UtcNow.Hour}_{DateTime.UtcNow.Minute}";
 			Console.WriteLine($"Writing report file to {pwd + outputFileName}.txt"); //todo: make configurable
-			sb.Append("\n========= END =========");
 			System.IO.File.WriteAllText(pwd + outputFileName + ".txt", sb.ToString());
-			Console.WriteLine("Done.");
-			Console.ReadKey();
 		}
 
 		public void ValidateJob(FindDuplicatesJob job)

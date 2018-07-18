@@ -20,3 +20,5 @@ FileUtil\.Data/bin/Debug/
 FileUtil\.Models/bin/Debug/
 
 FileUtil\.Service/bin/Debug/
+
+.vs/

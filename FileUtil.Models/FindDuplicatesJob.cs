@@ -6,7 +6,6 @@ namespace FileUtil.Models
 	public class FindDuplicatesJob : IJob
 	{
 		public string Path;
-		public string[] FilesArr;
 		public FindDuplicateOptions Options;
 
 		public FindDuplicatesJob(NameValueCollection appSettings)

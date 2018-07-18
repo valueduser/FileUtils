@@ -7,10 +7,9 @@ namespace FileUtil.Models
 		public int Id { get; set; }
 		public string Filename { get; set; }
 		public string FullPath { get; set; }
-		public long SizeInMB { get; set; }
+		public long SizeInMegaBytes { get; set; }
 		public string Hash { get; set; }
-		public List<string> Duplicates { get; set; } //todo remove
-		public List<string> HashCollisions { get; set; } //todo remove
+		public bool HasDuplicates { get; set; }
 
 		public override bool Equals(object obj)
 		{
@@ -23,15 +22,13 @@ namespace FileUtil.Models
 
 			if (!Filename.Equals(objresult.Filename) ||
 			    !FullPath.Equals(objresult.FullPath) ||
-			    !SizeInMB.Equals(objresult.SizeInMB) ||
-			    !Hash.Equals(objresult.Hash) ||
-			    Duplicates.Count != objresult.Duplicates.Count ||
-			    HashCollisions.Count != objresult.HashCollisions.Count)
+			    !SizeInMegaBytes.Equals(objresult.SizeInMegaBytes) ||
+			    !Hash.Equals(objresult.Hash))
 			{
 				return false;
 			}
 
-			return (CompareLists(Duplicates, objresult.Duplicates) && CompareLists(HashCollisions, objresult.HashCollisions));
+			return true;
 		}
 
 		private bool CompareLists(List<string> list1, List<string> list2)
@@ -44,9 +41,6 @@ namespace FileUtil.Models
 			return true;
 		}
 
-		public override int GetHashCode()
-		{
-			return base.GetHashCode();
-		}
+		public override int GetHashCode() => base.GetHashCode();
 	}
 }

@@ -38,7 +38,6 @@ namespace FileUtil.Core.Nunit
 										@"C:\pagefile.sys",
 										@"C:\windows-version.txt"};
 
-
 			var filesystemMock = new Moq.Mock<IFileSystem>();
 			FileHelpers sut = new FileHelpers(filesystemMock.Object);
 
@@ -59,6 +58,85 @@ namespace FileUtil.Core.Nunit
 		public void WalkFilePathsThrowsOnInvalidPath()
 		{
 			//todo
+		}
+
+		[Test]
+		public void GetHashedValueHandlesMissingFile()
+		{
+			string pathToFile = @"C:\windows-version.txt"; //todo
+			long filesize = 2195L;
+
+			var filesystemMock = new Moq.Mock<IFileSystem>();
+			FileHelpers sut = new FileHelpers(filesystemMock.Object);
+			string result = sut.GetHashedValue(pathToFile, filesize);
+
+			string expectedResult = "";
+			//System.IO.FileNotFoundException
+			Assert.NotNull(result);
+			Assert.AreEqual(result, expectedResult);
+		}
+
+		[Test]
+		public void GetHashedValueHandlesIncorrectFilesize()
+		{
+			string pathToFile = @"C:\windows-version.txt";
+			long filesize = 2195L; //todo
+
+			var filesystemMock = new Moq.Mock<IFileSystem>();
+			FileHelpers sut = new FileHelpers(filesystemMock.Object);
+			string result = sut.GetHashedValue(pathToFile, filesize);
+
+			string expectedResult = "";
+
+			Assert.NotNull(result);
+			Assert.AreEqual(result, expectedResult);
+		}
+
+		[Test]
+		public void GetHashedValueHandlesValidInput()
+		{
+			string pathToFile = @"C:\windows-version.txt";
+			CreateTestFile(pathToFile);
+			long filesize = 2195L;
+
+			var filesystemMock = new Moq.Mock<IFileSystem>();
+			FileHelpers sut = new FileHelpers(filesystemMock.Object);
+			string result = sut.GetHashedValue(pathToFile, filesize);
+
+			string expectedResult = "d41d8cd98f00b204e9800998ecf8427e";
+
+			Assert.NotNull(result);
+			Assert.AreEqual(result, expectedResult);
+		}
+
+		[Test]
+		public void GetHashedValueRespectsLimitOption()
+		{
+			string pathToFile = @"C:\windows-version.txt";
+			long filesize = 2195L;
+			long hashLimit = 555L;
+
+			var filesystemMock = new Moq.Mock<IFileSystem>();
+			FileHelpers sut = new FileHelpers(filesystemMock.Object);
+			string result = sut.GetHashedValue(pathToFile, filesize, hashLimit);
+
+			string expectedResult = "";
+
+			Assert.NotNull(result);
+			Assert.AreEqual(result, expectedResult);
+		}
+
+
+
+		//string GetFileName(string pathToFile);
+		//long GetFileSize(string pathToFile);
+
+		private void CreateTestFile(string filename)
+		{
+			if (!System.IO.File.Exists(filename))
+			{
+				System.IO.File.Create(filename).Dispose();
+			}
 		}
 	}
 }
