@@ -22,6 +22,7 @@ namespace FileUtil.Core
 	{
 		private IFileHelpers fileSystemHelper;
 
+		private int hashLimit;
 		private List<File> _duplicates = new List<File>();
 		private ConcurrentDictionary<string, List<File>> _hashTable = new ConcurrentDictionary<string, List<File>>();
 
@@ -33,6 +34,7 @@ namespace FileUtil.Core
 		public void FindDuplicateFiles(FindDuplicatesJob job)
 		{
 			string[] filePaths;
+			hashLimit = job.Options.HashLimit;
 			if (job.Options.IsLocalFileSystem)
 			{
 				filePaths = GetFilePaths(job);
@@ -109,8 +111,25 @@ namespace FileUtil.Core
 			{
 				if (Math.Floor(i * 100.0 / files.Length) > lastIncrement || i == files.Length)
 				{
-					pb.Refresh(i, filePath);
+					string tempFilePath = filePath;
+					if (filePath.Contains("{"))
+					{
+						tempFilePath = tempFilePath.Replace("{", "");
+					}
+					if (filePath.Contains("}"))
+					{
+						tempFilePath = tempFilePath.Replace("}", "");
+					}
+
+					try
+					{
+						pb.Refresh(i, tempFilePath);
 					lastIncrement = (i * 100 / files.Length);
+				}
+					catch (Exception e)
+					{
+						Console.WriteLine(e);
+					}
 				}
 
 				if (!String.IsNullOrEmpty(filePath))
@@ -122,9 +141,13 @@ namespace FileUtil.Core
 						Filename = fileSystemHelper.GetFileName(filePath),
 						SizeInMegaBytes = fileSize,
 						//todo: add option to hash only a portion of the file AND / OR check the files table. if the filename && size && path are the same as an entry in the files table, don't bother hashing (optionally) - just use the value from the table
-						Hash = fileSystemHelper.GetHashedValue(filePath, fileSize)
+						Hash = fileSystemHelper.GetHashedValue(filePath, fileSize, hashLimit)
 					};
-					tempFile.HasDuplicates = AddToHashTable(tempFile); //todo if hasDuplicates, add to the duplicate object in memory
+					if (tempFile.Filename == "_._")
+					{
+						continue;
+					}
+					AddToHashTable(tempFile);
 
 					knownFiles.Add(tempFile);
 				}

@@ -36,7 +36,7 @@ namespace FileUtil.Models
 			Path = appSettings["NetworkShareUncPath"] ?? "UNC Path Not Found";
 
 			int hashLimit = 0;
-			Int32.TryParse(appSettings["HashSizeLimitInMB"], out hashLimit);
+			Int32.TryParse(appSettings["HashSizeLimit"], out hashLimit);
 			HashLimit = hashLimit;
 			ReportOrderPreference = appSettings["ReportOrderPreference"] ?? "Alphabetical";
 		}
