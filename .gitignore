@@ -21,4 +21,6 @@ FileUtil\.Models/bin/Debug/
 
 FileUtil\.Service/bin/Debug/
 
+/packages/*
+packages/*
 .vs/
