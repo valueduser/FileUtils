@@ -17,11 +17,11 @@ namespace FileUtil.Core
 
 	public class FileHelpers : IFileHelpers
 	{
-		private readonly IFileSystem fileSystem;
+		private readonly IFileSystem _fileSystem;
 
 		public FileHelpers(IFileSystem fileSystem)
 		{
-			this.fileSystem = fileSystem;
+			this._fileSystem = fileSystem;
 		}
 
 		private string ToHex(byte[] bytes)
@@ -38,7 +38,15 @@ namespace FileUtil.Core
 
 		public string GetFileName(string pathToFile)
 		{
-			return fileSystem.Path.GetFileName(pathToFile);
+			try
+			{
+				return _fileSystem.Path.GetFileName(pathToFile);
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"Exception encountered getting file name: {ex}");
+				return "UNKNOWN_FILE";
+			}
 		}
 
 		/// <summary>
@@ -48,7 +56,15 @@ namespace FileUtil.Core
 		/// <returns>Size in KiloBytes</returns>
 		public long GetFileSize(string pathToFile)
 		{
-			return fileSystem.FileInfo.FromFileName(pathToFile).Length / 1024;
+			try
+			{
+				return _fileSystem.FileInfo.FromFileName(pathToFile).Length / 1024;
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"Exception encountered getting file size: {ex}");
+				return -1;
+			}
 		}
 
 		public string GetHashedValue(string pathToFile, long fileSize, long hashLimit = 0)
@@ -63,13 +79,12 @@ namespace FileUtil.Core
 				try
 				{
 					byte[] bytes = new byte[hashLimit];
-					using (var fs = fileSystem.FileStream.Create(filename, FileMode.Open))
+					using (var fs = _fileSystem.FileStream.Create(filename, FileMode.Open))
 					{
 						fs.Read(bytes, 0, (int) hashLimit);
 						using (var md5 = MD5.Create())
 						{
-							byte[] retval = md5.ComputeHash(bytes);
-							return retval;
+							return md5.ComputeHash(bytes);
 						}
 					}
 				}
@@ -86,7 +101,7 @@ namespace FileUtil.Core
 				{
 					try
 					{
-						using (var stream = fileSystem.File.OpenRead(filename))
+						using (var stream = _fileSystem.File.OpenRead(filename))
 						{
 							byte[] retval = md5.ComputeHash(stream);
 							//Console.WriteLine("done.");
@@ -110,7 +125,7 @@ namespace FileUtil.Core
 
 			try
 			{
-				fileSystemList = fileSystem.Directory.GetFiles(job.Path, "*.*", System.IO.SearchOption.AllDirectories);
+				fileSystemList = _fileSystem.Directory.GetFiles(job.Path, "*.*", System.IO.SearchOption.AllDirectories);
 			}
 			catch (Exception e)
 			{
