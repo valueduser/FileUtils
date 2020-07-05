@@ -39,6 +39,7 @@ namespace FileUtil.Core
 				filePaths = GetFilePaths(job);
 				duplicateDictionary = PopulateFileMetaData(filePaths);
 				ReportResults(duplicateDictionary);
+				//PersistFile
 			}
 			else
 			{
@@ -108,6 +109,7 @@ namespace FileUtil.Core
 			int i = 0;
 			foreach (string filePath in files)
 			{
+				// Only update the progress bar occasionally
 				if (Math.Floor(i * 100.0 / files.Length) > lastIncrement || i == files.Length)
 				{
 					string tempFilePath = filePath;
@@ -123,8 +125,8 @@ namespace FileUtil.Core
 					try
 					{
 						pb.Refresh(i, tempFilePath);
-					lastIncrement = (i * 100 / files.Length);
-				}
+						lastIncrement = (i * 100 / files.Length);
+					}
 					catch (Exception e)
 					{
 						Console.WriteLine(e);

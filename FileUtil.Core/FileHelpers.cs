@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.IO.Abstractions;
-using System.IO.MemoryMappedFiles;
 using System.Security.Cryptography;
 using System.Text;
 using FileUtil.Models;
@@ -61,28 +60,24 @@ namespace FileUtil.Core
 		{
 			if (hashLimit != 0 && hashLimit < filesize)
 			{
-				//Console.WriteLine($"Hashing the first {hashLimit} bytes of {filename}...");
-				using (var mmf = MemoryMappedFile.CreateFromFile(filename, FileMode.Open))
+				try
 				{
-					using (var stream = mmf.CreateViewStream(0, hashLimit * 1024))
+					byte[] bytes = new byte[hashLimit];
+					using (var fs = fileSystem.FileStream.Create(filename, FileMode.Open))
 					{
+						fs.Read(bytes, 0, (int) hashLimit);
 						using (var md5 = MD5.Create())
 						{
-							try
-							{
-								byte[] retval = md5.ComputeHash(stream);
-								//Console.WriteLine("done.");
-								return retval;
-							}
-							catch (Exception e)
-							{
-								Console.WriteLine($"Error hashing {filename}: {e}");
-								return new byte[] { };
-							}
+							byte[] retval = md5.ComputeHash(bytes);
+							return retval;
 						}
 					}
 				}
-
+				catch (Exception ex)
+				{
+					Console.WriteLine($"Error hashing {filename}: {ex}");
+					return new byte[] { };
+				}
 			}
 			else
 			{
@@ -91,7 +86,7 @@ namespace FileUtil.Core
 				{
 					try
 					{
-						using (var stream = System.IO.File.OpenRead(filename))
+						using (var stream = fileSystem.File.OpenRead(filename))
 						{
 							byte[] retval = md5.ComputeHash(stream);
 							//Console.WriteLine("done.");
