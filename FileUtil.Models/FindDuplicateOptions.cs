@@ -26,8 +26,7 @@ namespace FileUtil.Models
 
 		public FindDuplicateOptions(NameValueCollection appSettings)
 		{
-			bool isLocalFileSystem = true;
-			Boolean.TryParse(appSettings["isLocalFileSystem"], out isLocalFileSystem);
+			Boolean.TryParse(appSettings["isLocalFileSystem"], out bool isLocalFileSystem);
 			IsLocalFileSystem = isLocalFileSystem;
 
 			User = appSettings["NetworkShareUser"] ?? "User Not Found";
@@ -35,8 +34,7 @@ namespace FileUtil.Models
 			Domain = appSettings["NetworkShareDomain"] ?? "Domain Not Found";
 			Path = appSettings["NetworkShareUncPath"] ?? "UNC Path Not Found";
 
-			int hashLimit = 0;
-			Int32.TryParse(appSettings["HashSizeLimit"], out hashLimit);
+			Int32.TryParse(appSettings["HashSizeLimitInKB"], out int hashLimit);
 			HashLimit = hashLimit;
 			ReportOrderPreference = appSettings["ReportOrderPreference"] ?? "Alphabetical";
 		}

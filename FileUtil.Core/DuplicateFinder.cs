@@ -23,8 +23,7 @@ namespace FileUtil.Core
 		private IFileHelpers fileSystemHelper;
 
 		private int hashLimit;
-		private List<File> _duplicates = new List<File>();
-		private ConcurrentDictionary<string, List<File>> _hashTable = new ConcurrentDictionary<string, List<File>>();
+		private ConcurrentDictionary<string, List<File>> _duplicateDictionary = new ConcurrentDictionary<string, List<File>>();
 
 		public DuplicateFinder(IFileHelpers fileSystemHelper)
 		{
@@ -143,10 +142,13 @@ namespace FileUtil.Core
 						//todo: add option to hash only a portion of the file AND / OR check the files table. if the filename && size && path are the same as an entry in the files table, don't bother hashing (optionally) - just use the value from the table
 						Hash = fileSystemHelper.GetHashedValue(filePath, fileSize, hashLimit)
 					};
+
+					//Ignore empty directory placeholder
 					if (tempFile.Filename == "_._")
 					{
 						continue;
 					}
+
 					AddToHashTable(tempFile);
 
 					knownFiles.Add(tempFile);
@@ -159,25 +161,24 @@ namespace FileUtil.Core
 
 		public bool AddToHashTable(File file)
 		{
-			//_hashTable.AddOrUpdate(file.Hash, new List<File>() {file}, (key, value) => { value.Add(file); return value; });
+			//_duplicateDictionary.AddOrUpdate(file.Hash, new List<File>() {file}, (key, value) => { value.Add(file); return value; });
 			//if we can determine if it was added, _duplicates.Add(file);
 
-			if (!_hashTable.ContainsKey(file.Hash))
+			if (!_duplicateDictionary.ContainsKey(file.Hash))
 			{
-				_hashTable.GetOrAdd(file.Hash, new List<File>() { file });
+				_duplicateDictionary.GetOrAdd(file.Hash, new List<File>() { file });
 
 				return false;
 			}
 
-			_hashTable.TryGetValue(file.Hash, out var tempList);
+			_duplicateDictionary.TryGetValue(file.Hash, out var tempList);
 
 			if (tempList != null)
 			{
 				tempList.Add(file);
-				_hashTable[file.Hash] = tempList;
+				_duplicateDictionary[file.Hash] = tempList;
 			}
 
-			_duplicates.Add(file);
 			return true;
 		}
 
@@ -186,28 +187,17 @@ namespace FileUtil.Core
 			StringBuilder sb = new StringBuilder();
 			sb.Append("========= DUPLICATE FILE RESULTS =========\n\n");
 
-			sb.Append($"Found {_duplicates.Count} duplicates.\n");
-			if (_duplicates.Count > 0)
+			foreach(var entry in _duplicateDictionary)
 			{
-				foreach (File duplicateEntry in _duplicates)
-				{
-					sb.Append($"MD5 Hash: {duplicateEntry.Hash} ({duplicateEntry.SizeInMegaBytes:0.00} MB) is shared by the following files: \n");
-					sb.Append($"\t{duplicateEntry.FullPath,-10}\n");
+				sb.Append($"MD5 Hash: {entry.Key} is shared by the following files: \n");
 
-					if (_hashTable.ContainsKey(duplicateEntry.Hash))
-					{
-						foreach (File tempFile in _hashTable[duplicateEntry.Hash])
-						{
-							if (tempFile.FullPath != duplicateEntry.FullPath)
-							{
-								sb.Append($"\t{tempFile.FullPath}");
-								sb.Append("\n");
-							}
-						}
-						sb.Append("\n");
-					}
+				foreach(File file in entry.Value)
+				{
+					sb.Append($"\t{file.FullPath,-10}\t({file.SizeInKiloBytes} KB)\n");
 				}
+				sb.Append("\n");
 			}
+
 			string pwd = Path.GetFullPath(@".\");
 			string outputFileName = $"Duplicates_{DateTime.UtcNow.Month}.{DateTime.UtcNow.Day}.{DateTime.UtcNow.Year}-{DateTime.UtcNow.Hour}_{DateTime.UtcNow.Minute}";
 			Console.WriteLine($"Writing report file to {pwd + outputFileName}.txt"); //todo: make configurable

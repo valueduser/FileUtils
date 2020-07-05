@@ -59,7 +59,7 @@ namespace FileUtil.Core
 
 		private byte[] HashFile(string filename, long filesize, long hashLimit = 0)
 		{
-			if (hashLimit < filesize && hashLimit != 0)
+			if (hashLimit != 0 && hashLimit < filesize)
 			{
 				//Console.WriteLine($"Hashing the first {hashLimit} bytes of {filename}...");
 				using (var mmf = MemoryMappedFile.CreateFromFile(filename, FileMode.Open))
