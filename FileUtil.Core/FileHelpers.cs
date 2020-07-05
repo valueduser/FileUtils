@@ -42,6 +42,11 @@ namespace FileUtil.Core
 			return fileSystem.Path.GetFileName(pathToFile);
 		}
 
+		/// <summary>
+		/// Reports the size of a file as understood by the File System
+		/// </summary>
+		/// <param name="pathToFile">Path to the file</param>
+		/// <returns>Size in KiloBytes</returns>
 		public long GetFileSize(string pathToFile)
 		{
 			return fileSystem.FileInfo.FromFileName(pathToFile).Length / 1024;

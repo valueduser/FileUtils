@@ -7,7 +7,7 @@ namespace FileUtil.Models
 		public int Id { get; set; }
 		public string Filename { get; set; }
 		public string FullPath { get; set; }
-		public long SizeInMegaBytes { get; set; }
+		public long SizeInKiloBytes { get; set; }
 		public string Hash { get; set; }
 
 		public override bool Equals(object obj)
@@ -21,7 +21,7 @@ namespace FileUtil.Models
 
 			if (!Filename.Equals(objresult.Filename) ||
 			    !FullPath.Equals(objresult.FullPath) ||
-			    !SizeInMegaBytes.Equals(objresult.SizeInMegaBytes) ||
+			    !SizeInKiloBytes.Equals(objresult.SizeInKiloBytes) ||
 			    !Hash.Equals(objresult.Hash))
 			{
 				return false;

@@ -28,7 +28,7 @@ namespace FileUtils
 			File expectedDuplicateFile = new File()
 			{
 				Filename = "BOOTNXT",
-				SizeInMegaBytes = 626,
+				SizeInKiloBytes = 626,
 				FullPath = @"C:\BOOTNXT",
 				Hash = "bbaaddbbeeeeff",
 			};

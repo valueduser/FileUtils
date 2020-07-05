@@ -139,7 +139,7 @@ namespace FileUtil.Core
 					{
 						FullPath = filePath,
 						Filename = fileSystemHelper.GetFileName(filePath),
-						SizeInMegaBytes = fileSize,
+						SizeInKiloBytes = fileSize,
 						//todo: add option to hash only a portion of the file AND / OR check the files table. if the filename && size && path are the same as an entry in the files table, don't bother hashing (optionally) - just use the value from the table
 						Hash = fileSystemHelper.GetHashedValue(filePath, fileSize, hashLimit)
 					};
