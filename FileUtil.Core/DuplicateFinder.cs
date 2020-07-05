@@ -23,7 +23,6 @@ namespace FileUtil.Core
 		private IFileHelpers fileSystemHelper;
 
 		private int hashLimit;
-		private ConcurrentDictionary<string, List<File>> _duplicateDictionary = new ConcurrentDictionary<string, List<File>>();
 
 		public DuplicateFinder(IFileHelpers fileSystemHelper)
 		{
@@ -33,12 +32,13 @@ namespace FileUtil.Core
 		public void FindDuplicateFiles(FindDuplicatesJob job)
 		{
 			string[] filePaths;
+			ConcurrentDictionary<string, List<File>> duplicateDictionary;
 			hashLimit = job.Options.HashLimit;
 			if (job.Options.IsLocalFileSystem)
 			{
 				filePaths = GetFilePaths(job);
-				PopulateFileMetaData(filePaths);
-				ReportResults();
+				duplicateDictionary = PopulateFileMetaData(filePaths);
+				ReportResults(duplicateDictionary);
 			}
 			else
 			{
@@ -49,8 +49,8 @@ namespace FileUtil.Core
 						|| unc.LastError == 1219) // Already connected
 					{
 						filePaths = GetFilePaths(job);
-						PopulateFileMetaData(filePaths);
-						ReportResults();
+						duplicateDictionary = PopulateFileMetaData(filePaths);
+						ReportResults(duplicateDictionary);
 						//PersistFile
 					}
 					else
@@ -96,9 +96,9 @@ namespace FileUtil.Core
 			return files;
 		}
 
-		public List<File> PopulateFileMetaData(string[] files) //todo do I need to return List??
+		public ConcurrentDictionary<string, List<File>> PopulateFileMetaData(string[] files)
 		{
-			List<File> knownFiles = new List<File>();
+			ConcurrentDictionary<string, List<File>> duplicateDictionary = new ConcurrentDictionary<string, List<File>>();
 
 			Console.WriteLine("Populating metadata for discovered files...");
 			var pb = new ProgressBar(PbStyle.DoubleLine, files.Length);
@@ -149,45 +149,20 @@ namespace FileUtil.Core
 						continue;
 					}
 
-					AddToHashTable(tempFile);
-
-					knownFiles.Add(tempFile);
+					duplicateDictionary.AddOrUpdate(tempFile.Hash, new List<File>() { tempFile }, (key, value) => { value.Add(tempFile); return value; });
 				}
 				i++;
 			}
 			Console.WriteLine("\n...done.");
-			return knownFiles;
+			return duplicateDictionary;
 		}
 
-		public bool AddToHashTable(File file)
-		{
-			//_duplicateDictionary.AddOrUpdate(file.Hash, new List<File>() {file}, (key, value) => { value.Add(file); return value; });
-			//if we can determine if it was added, _duplicates.Add(file);
-
-			if (!_duplicateDictionary.ContainsKey(file.Hash))
-			{
-				_duplicateDictionary.GetOrAdd(file.Hash, new List<File>() { file });
-
-				return false;
-			}
-
-			_duplicateDictionary.TryGetValue(file.Hash, out var tempList);
-
-			if (tempList != null)
-			{
-				tempList.Add(file);
-				_duplicateDictionary[file.Hash] = tempList;
-			}
-
-			return true;
-		}
-
-		internal void ReportResults()
+		internal void ReportResults(ConcurrentDictionary<string, List<File>> duplicateDictionary)
 		{
 			StringBuilder sb = new StringBuilder();
 			sb.Append("========= DUPLICATE FILE RESULTS =========\n\n");
 
-			foreach(var entry in _duplicateDictionary)
+			foreach(var entry in duplicateDictionary)
 			{
 				sb.Append($"MD5 Hash: {entry.Key} is shared by the following files: \n");
 
