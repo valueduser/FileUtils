@@ -35,7 +35,6 @@ namespace FileUtils
 			Dictionary<string, File> expectedDuplicates = new Dictionary<string, File>();
 			expectedDuplicates.Add(expectedDuplicateFile.Hash, expectedDuplicateFile);
 			expectedResult.Duplicates = expectedDuplicates;
-			expectedResult.ReportOrderPreference = "Alphabetical";
 
 			//FindDuplicateOptions options = new FindDuplicateOptions()
 			//{

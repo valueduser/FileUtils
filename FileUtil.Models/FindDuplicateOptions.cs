@@ -11,7 +11,6 @@ namespace FileUtil.Models
 		public string Domain { get; set; }
 		public string Path { get; set; }
 		public int HashLimit { get; set; }
-		public string ReportOrderPreference { get; set; }
 
 		public FindDuplicateOptions()
 		{
@@ -21,7 +20,6 @@ namespace FileUtil.Models
 			Domain = "";
 			Path = "";
 			HashLimit = 0;
-			ReportOrderPreference = "Alphabetical";
 		}
 
 		public FindDuplicateOptions(NameValueCollection appSettings)
@@ -36,7 +34,6 @@ namespace FileUtil.Models
 
 			Int32.TryParse(appSettings["HashSizeLimitInKB"], out int hashLimit);
 			HashLimit = hashLimit;
-			ReportOrderPreference = appSettings["ReportOrderPreference"] ?? "Alphabetical";
 		}
 	}
 }
