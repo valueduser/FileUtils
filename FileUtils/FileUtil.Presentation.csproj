@@ -41,8 +41,8 @@
       <HintPath>..\packages\Castle.Windsor.4.0.0\lib\net45\Castle.Windsor.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Konsole, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Goblinfactory.Konsole.ProgressBar.Core.1.0.2\lib\netstandard1.4\Konsole.dll</HintPath>
+    <Reference Include="Goblinfactory.Konsole, Version=6.2.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Goblinfactory.Konsole.6.2.0\lib\netstandard2.0\Goblinfactory.Konsole.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
