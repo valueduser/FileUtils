@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.IO.Abstractions;
 using System.Text;
 using FileUtil.Models;
@@ -19,7 +20,7 @@ namespace FileUtil.Core.Nunit
 		}
 
 		[Test()]
-		public void WalkFilePathsReturnsExpectedArray()
+		public void WalkFilePaths_ReturnsExpectedArray()
 		{
 			FindDuplicateOptions options = new FindDuplicateOptions()
 			{
@@ -47,19 +48,67 @@ namespace FileUtil.Core.Nunit
 		}
 
 		[Test()]
-		public void WalkFilePathsReturnsExpectedEmptyArray()
+		public void WalkFilePaths_ReturnsExpectedEmptyArray()
 		{
-			//todo
+			FindDuplicateOptions options = new FindDuplicateOptions()
+			{
+				Domain = "",
+				HashLimit = 0,
+				IsLocalFileSystem = true,
+				Pass = "",
+				User = "",
+				Path = @".\"
+			};
+			FindDuplicatesJob testJob = new FindDuplicatesJob(options);
+
+			string[] testFiles = new string[0];
+
+			var filesystemMock = new Moq.Mock<IFileSystem>();
+			FileHelpers sut = new FileHelpers(filesystemMock.Object);
+
+			filesystemMock.Setup(x => x.Directory.GetFiles(testJob.Options.Path, It.IsAny<string>(), It.IsAny<System.IO.SearchOption>())).Returns(testFiles);
+
+			string[] actualResult = sut.WalkFilePaths(testJob);
+			Assert.AreEqual(testFiles, actualResult);
 		}
 
 		[Test()]
-		public void WalkFilePathsThrowsOnInvalidPath()
+		public void WalkFilePaths_ThrowsOnInvalidPath()
 		{
-			//todo
+			FindDuplicateOptions options = new FindDuplicateOptions()
+			{
+				Domain = "",
+				HashLimit = 0,
+				IsLocalFileSystem = true,
+				Pass = "",
+				User = "",
+				Path = @".\"
+			};
+			FindDuplicatesJob testJob = new FindDuplicatesJob(options);
+			string expectedInnerError = "unanticipated error";
+
+			var filesystemMock = new Moq.Mock<IFileSystem>();
+			FileHelpers sut = new FileHelpers(filesystemMock.Object);
+
+			filesystemMock
+				.Setup(x => x.Directory.GetFiles(testJob.Options.Path, It.IsAny<string>(),
+					It.IsAny<System.IO.SearchOption>())).Throws(new Exception(expectedInnerError));
+
+			try
+			{
+				sut.WalkFilePaths(testJob);
+				Assert.Fail("If WalkFilePaths throws, there isn't anything we can do to recover. Should have thrown but did not.");
+			}
+			catch (Exception ex)
+			{
+				Assert.True(ex.Message.Contains(expectedInnerError));
+				Assert.Pass();
+			}
+
 		}
 
 		[Test]
-		public void GetHashedValueHandlesMissingFile()
+		public void GetHashedValue_HandlesMissingFile()
 		{
 			string pathToFile = @"C:\windows-version.txt";
 			long filesize = 2195L;
@@ -75,7 +124,7 @@ namespace FileUtil.Core.Nunit
 		}
 
 		[Test]
-		public void GetHashedValueHandlesIncorrectFileSize()
+		public void GetHashedValue_HandlesIncorrectFileSize()
 		{
 			string pathToFile = @"C:\windows-version.txt";
 			long filesize = 2195L;
@@ -93,8 +142,7 @@ namespace FileUtil.Core.Nunit
 		}
 
 		[Test]
-		//[Ignore("TODO: On file create, supply content for hashing")]
-		public void GetHashedValueHandlesValidInput()
+		public void GetHashedValue_HandlesValidInput()
 		{
 			string pathToFile = @"C:\test-file.txt";
 			long filesize = 3L;
@@ -112,7 +160,7 @@ namespace FileUtil.Core.Nunit
 		}
 
 		[Test]
-		public void GetHashedValueRespectsLimitOption()
+		public void GetHashedValue_RespectsLimitOption()
 		{
 			string pathToFile = @"C:\test-file.txt";
 			long filesize = 3L;
@@ -127,6 +175,96 @@ namespace FileUtil.Core.Nunit
 			string result = sut.GetHashedValue(pathToFile, filesize, hashLimit);
 
 			Assert.NotNull(result);
+			Assert.AreEqual(expectedResult, result);
+		}
+
+		[Test]
+		public void GetHashedValueLimited_HandlesExceptions()
+		{
+			string pathToFile = @"C:\test-file.txt";
+			long filesize = 3L;
+			long hashLimit = 1L;
+			string expectedException = "surprise!";
+
+			var filesystemMock = new Moq.Mock<IFileSystem>();
+			FileHelpers sut = new FileHelpers(filesystemMock.Object);
+			Stream mockStream = new MemoryStream(Encoding.UTF8.GetBytes(longText));
+			filesystemMock.Setup(x => x.FileStream.Create(It.IsAny<string>(), FileMode.Open))
+				.Throws(new Exception(expectedException));
+
+			string result = sut.GetHashedValue(pathToFile, filesize, hashLimit);
+
+			Assert.IsEmpty(result);
+		}
+
+		[Test]
+		public void GetFileSize_ReturnsExpectedValue()
+		{
+			string pathToFile = @"C:\test-file.txt";
+			long expectedResult = 30679615L;
+			var mockedFileInfo = new Mock<IFileInfo>();
+			mockedFileInfo.Setup(f => f.Length).Returns(31415926535L);
+			
+			var filesystemMock = new Moq.Mock<IFileSystem>();
+			FileHelpers sut = new FileHelpers(filesystemMock.Object);
+			filesystemMock.Setup(x => x.FileInfo.FromFileName(It.IsAny<string>()))
+				.Returns(mockedFileInfo.Object);
+
+			long result = sut.GetFileSize(pathToFile);
+
+			Assert.AreEqual(expectedResult, result);
+		}
+
+		[Test]
+		public void GetFileSize_HandlesExceptions()
+		{
+			string pathToFile = @"C:\test-file.txt";
+			long expectedResult = -1L;
+			string expectedException = "surprise!";
+
+			var mockedFileInfo = new Mock<IFileInfo>();
+			mockedFileInfo.Setup(f => f.Length).Throws(new Exception(expectedException));
+
+			var filesystemMock = new Moq.Mock<IFileSystem>();
+			FileHelpers sut = new FileHelpers(filesystemMock.Object);
+			filesystemMock.Setup(x => x.FileInfo.FromFileName(It.IsAny<string>()))
+				.Returns(mockedFileInfo.Object);
+
+			long result = sut.GetFileSize(pathToFile);
+
+			Assert.AreEqual(expectedResult, result);
+		}
+
+		[Test]
+		public void GetFileName_ReturnsExpectedValue()
+		{
+			string pathToFile = @"C:\test-file.txt";
+			string fileName = "iamafilename";
+
+			var filesystemMock = new Moq.Mock<IFileSystem>();
+			FileHelpers sut = new FileHelpers(filesystemMock.Object);
+			filesystemMock.Setup(x => x.Path.GetFileName(It.IsAny<string>()))
+				.Returns(fileName);
+
+			string result = sut.GetFileName(pathToFile);
+
+			Assert.AreEqual(fileName, result);
+		}
+
+		[Test]
+		public void GetFileName_HandlesExceptions()
+		{
+			string pathToFile = @"C:\test-file.txt";
+			string expectedResult = "UNKNOWN_FILE";
+			string expectedException = "surprise!";
+
+			var filesystemMock = new Moq.Mock<IFileSystem>();
+			FileHelpers sut = new FileHelpers(filesystemMock.Object);
+			filesystemMock.Setup(x => x.Path.GetFileName(It.IsAny<string>()))
+				.Throws(new Exception(expectedException));
+
+			string result = sut.GetFileName(pathToFile);
+
 			Assert.AreEqual(expectedResult, result);
 		}
 	}
