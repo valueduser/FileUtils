@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration;
 using System.IO.Abstractions;
@@ -20,9 +22,12 @@ namespace FileUtil.Service.ServiceInterfaces
 			FindDuplicatesJob job = new FindDuplicatesJob(SafeGetAppConfigs());
 
 			FileHelpers fileHelpers = new FileHelpers(new FileSystem());
-			FileUtil.Core.DuplicateFinder dupeFinder = new DuplicateFinder(fileHelpers);
+			DuplicateFinder dupeFinder = new DuplicateFinder(fileHelpers);
 			dupeFinder.ValidateJob(job);
-			dupeFinder.FindDuplicateFiles(job);
+			ConcurrentDictionary<string, List<File>> duplicates =  dupeFinder.FindDuplicateFiles(job);
+			dupeFinder.ReportResults(duplicates);
+
+			//TODO: Persist
 
 			Console.ReadKey();
 		}

@@ -11,7 +11,8 @@ namespace FileUtil.Core
 {
 	public interface IDuplicateFinder
 	{
-		void FindDuplicateFiles(FindDuplicatesJob job);
+		// TODO: Update
+		ConcurrentDictionary<string, List<File>> FindDuplicateFiles(FindDuplicatesJob job);
 
 		string[] GetFilePaths(FindDuplicatesJob job);
 
@@ -20,26 +21,24 @@ namespace FileUtil.Core
 
 	public class DuplicateFinder
 	{
-		private IFileHelpers fileSystemHelper;
+		private readonly IFileHelpers _fileSystemHelper;
 
 		private int hashLimit;
 
 		public DuplicateFinder(IFileHelpers fileSystemHelper)
 		{
-			this.fileSystemHelper = fileSystemHelper;
+			this._fileSystemHelper = fileSystemHelper;
 		}
 
-		public void FindDuplicateFiles(FindDuplicatesJob job)
+		public ConcurrentDictionary<string, List<File>> FindDuplicateFiles(FindDuplicatesJob job)
 		{
 			string[] filePaths;
-			ConcurrentDictionary<string, List<File>> duplicateDictionary;
+			ConcurrentDictionary<string, List<File>> duplicateDictionary = new ConcurrentDictionary<string, List<File>>();
 			hashLimit = job.Options.HashLimit;
 			if (job.Options.IsLocalFileSystem)
 			{
 				filePaths = GetFilePaths(job);
-				duplicateDictionary = PopulateFileMetaData(filePaths);
-				ReportResults(duplicateDictionary);
-				//PersistFile
+				PopulateFileMetaData(filePaths, duplicateDictionary);
 			}
 			else
 			{
@@ -50,9 +49,8 @@ namespace FileUtil.Core
 						|| unc.LastError == 1219) // Already connected
 					{
 						filePaths = GetFilePaths(job);
-						duplicateDictionary = PopulateFileMetaData(filePaths);
-						ReportResults(duplicateDictionary);
-						//PersistFile
+						PopulateFileMetaData(filePaths, duplicateDictionary);
+						
 					}
 					else
 					{
@@ -86,31 +84,35 @@ namespace FileUtil.Core
 					}
 				}
 			}
+
+			return duplicateDictionary;
 		}
 
 		public string[] GetFilePaths(FindDuplicatesJob job)
 		{
 			//Since we don't yet know how many files will be found, progress reporting is not trivial.
 			Console.WriteLine($"Traversing {job.Path}...");
-			string[] files = fileSystemHelper.WalkFilePaths(job);
+			string[] files = _fileSystemHelper.WalkFilePaths(job);
 			Console.WriteLine("...done.");
 			return files;
 		}
 
-		public ConcurrentDictionary<string, List<File>> PopulateFileMetaData(string[] files)
+		internal ConcurrentDictionary<string, List<File>> PopulateFileMetaData(string[] files, ConcurrentDictionary<string, List<File>> duplicateDictionary)
 		{
-			ConcurrentDictionary<string, List<File>> duplicateDictionary = new ConcurrentDictionary<string, List<File>>();
-
 			Console.WriteLine("Populating metadata for discovered files...");
-			var pb = new ProgressBar(PbStyle.DoubleLine, files.Length);
+
+			bool isInConsole = IsConsoleApplication();
+
+			var pb = isInConsole ? new ProgressBar(PbStyle.DoubleLine, files.Length) : null;
 			int lastIncrement = 0;
-			pb.Refresh(0, "Initializing...");
+			
+			if(isInConsole) pb.Refresh(0, "Initializing...");
 
 			int i = 0;
 			foreach (string filePath in files)
 			{
 				// Only update the progress bar occasionally
-				if (Math.Floor(i * 100.0 / files.Length) > lastIncrement || i == files.Length)
+				if (isInConsole && Math.Floor(i * 100.0 / files.Length) > lastIncrement || i == files.Length)
 				{
 					string tempFilePath = filePath;
 					if (filePath.Contains("{"))
@@ -135,14 +137,14 @@ namespace FileUtil.Core
 
 				if (!String.IsNullOrEmpty(filePath))
 				{
-					long fileSize = fileSystemHelper.GetFileSize(filePath);
+					long fileSize = _fileSystemHelper.GetFileSize(filePath);
 					File tempFile = new File
 					{
 						FullPath = filePath,
-						Filename = fileSystemHelper.GetFileName(filePath),
+						Filename = _fileSystemHelper.GetFileName(filePath),
 						SizeInKiloBytes = fileSize,
 						//todo: add option to hash only a portion of the file AND / OR check the files table. if the filename && size && path are the same as an entry in the files table, don't bother hashing (optionally) - just use the value from the table
-						Hash = fileSystemHelper.GetHashedValue(filePath, fileSize, hashLimit)
+						Hash = _fileSystemHelper.GetHashedValue(filePath, fileSize, hashLimit)
 					};
 
 					//Ignore empty directory placeholder
@@ -159,13 +161,16 @@ namespace FileUtil.Core
 			return duplicateDictionary;
 		}
 
-		internal void ReportResults(ConcurrentDictionary<string, List<File>> duplicateDictionary)
+		public void ReportResults(ConcurrentDictionary<string, List<File>> duplicateDictionary)
 		{
 			StringBuilder sb = new StringBuilder();
 			sb.Append("========= DUPLICATE FILE RESULTS =========\n\n");
 
 			foreach(var entry in duplicateDictionary)
 			{
+				//Skip hashes without duplicates
+				if(entry.Value.Count == 1) continue;
+
 				sb.Append($"MD5 Hash: {entry.Key} is shared by the following files: \n");
 
 				foreach(File file in entry.Value)
@@ -187,6 +192,13 @@ namespace FileUtil.Core
 			{
 				throw new ArgumentException("Remote Filesystem selected but credentials were invalid.");
 			}
+		}
+
+		// Konsole requires a real Console to work https://github.com/goblinfactory/konsole/issues/58
+		// This is disgusting hack to get the TestRunner to work but hopefully a temporary one.
+		private bool IsConsoleApplication()
+		{
+			return System.Diagnostics.Process.GetCurrentProcess().ProcessName == "FileUtils";
 		}
 	}
 }

@@ -33,7 +33,8 @@ namespace FileUtil.Models
 			Path = appSettings["NetworkShareUncPath"] ?? "UNC Path Not Found";
 
 			Int32.TryParse(appSettings["HashSizeLimitInKB"], out int hashLimit);
-			HashLimit = hashLimit;
+			if(hashLimit != null && hashLimit > 0)
+				HashLimit = hashLimit;
 		}
 	}
 }
