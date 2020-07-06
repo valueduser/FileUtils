@@ -5,12 +5,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Goblinfactory.Konsole" Version="6.2.0" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.7.0" />
     <PackageReference Include="System.IO.Abstractions" Version="12.0.4" />
-    <PackageReference Include="UNCAccessWithCredentials" Version="1.0.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\FileUtil.Core\FileUtil.Core.csproj" />
     <ProjectReference Include="..\FileUtil.Models\FileUtil.Models.csproj" />
   </ItemGroup>
 
