@@ -1,0 +1,7 @@
+language: csharp
+solution: FileUtils.sln
+dotnet: 3.0.103
+script:
+ - dotnet restore
+ - dotnet test
+
