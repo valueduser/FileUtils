@@ -6,6 +6,7 @@ using System.Text;
 using FileUtil.Models;
 using Konsole;
 using File = FileUtil.Models.File;
+using NLog;
 
 namespace FileUtil.Core
 {
@@ -22,12 +23,13 @@ namespace FileUtil.Core
 	public class DuplicateFinder
 	{
 		private readonly IFileHelpers _fileSystemHelper;
-
+		private readonly Logger logger;
 		private int hashLimit;
 
 		public DuplicateFinder(IFileHelpers fileSystemHelper)
 		{
 			this._fileSystemHelper = fileSystemHelper;
+			logger = LogManager.GetCurrentClassLogger();
 		}
 
 		public ConcurrentDictionary<string, List<File>> FindDuplicateFiles(FindDuplicatesJob job)
@@ -54,30 +56,31 @@ namespace FileUtil.Core
 					}
 					else
 					{
-						Console.WriteLine($"Failed to connect to UNC location. Error: {unc.LastError}.");
+						logger.Error($"Failed to connect to UNC location. Error: {unc.LastError}.");
+						//Console.WriteLine($"Failed to connect to UNC location. Error: {unc.LastError}.");
 						switch (unc.LastError)
 						{
 							case 1326:
-								Console.WriteLine("Login failure: The user name or password is incorrect.");
+								logger.Error("Login failure: The user name or password is incorrect.");
 								break;
 							case 86:
-								Console.WriteLine("Access denied: The specified network password is not correct.");
+								logger.Error("Access denied: The specified network password is not correct.");
 								break;
 							case 87:
-								Console.WriteLine("Invalid parameter.");
+								logger.Error("Invalid parameter.");
 								break;
 							case 1219:
-								Console.WriteLine("Multiple connections to server.");
+								logger.Error("Multiple connections to server.");
 								unc.Dispose();
 								break;
 							case 53:
-								Console.WriteLine("Network path not found.");
+								logger.Error("Network path not found.");
 								break;
 							case 5:
-								Console.WriteLine("Access denied.");
+								logger.Error("Access denied.");
 								break;
 							default:
-								Console.WriteLine($"Unknown error. {unc.LastError}");
+								logger.Error($"Unknown error. {unc.LastError}");
 								break;
 						}
 						Console.ReadKey();
@@ -91,15 +94,15 @@ namespace FileUtil.Core
 		public string[] GetFilePaths(FindDuplicatesJob job)
 		{
 			//Since we don't yet know how many files will be found, progress reporting is not trivial.
-			Console.WriteLine($"Traversing {job.Path}...");
+			logger.Debug($"Traversing {job.Path}...");
 			string[] files = _fileSystemHelper.WalkFilePaths(job);
-			Console.WriteLine("...done.");
+			logger.Debug("...done.");
 			return files;
 		}
 
 		internal ConcurrentDictionary<string, List<File>> PopulateFileMetaData(string[] files, ConcurrentDictionary<string, List<File>> duplicateDictionary)
 		{
-			Console.WriteLine("Populating metadata for discovered files...");
+			logger.Debug("Populating metadata for discovered files...");
 
 			bool isInConsole = IsConsoleApplication();
 
@@ -157,7 +160,7 @@ namespace FileUtil.Core
 				}
 				i++;
 			}
-			Console.WriteLine("\n...done.");
+			logger.Debug("\n...done.");
 			return duplicateDictionary;
 		}
 
@@ -182,7 +185,7 @@ namespace FileUtil.Core
 
 			string pwd = Path.GetFullPath(@".\");
 			string outputFileName = $"Duplicates_{DateTime.UtcNow.Month}.{DateTime.UtcNow.Day}.{DateTime.UtcNow.Year}-{DateTime.UtcNow.Hour}_{DateTime.UtcNow.Minute}";
-			Console.WriteLine($"Writing report file to {pwd + outputFileName}.txt"); //todo: make configurable
+			logger.Debug($"Writing report file to {pwd + outputFileName}.txt"); //todo: make configurable);
 			System.IO.File.WriteAllText(pwd + outputFileName + ".txt", sb.ToString());
 		}
 
@@ -190,6 +193,7 @@ namespace FileUtil.Core
 		{
 			if (!job.Options.IsLocalFileSystem && (String.IsNullOrEmpty(job.Options.User) || String.IsNullOrEmpty(job.Options.Pass)))
 			{
+				logger.Error("Remote Filesystem selected but credentials were invalid.");
 				throw new ArgumentException("Remote Filesystem selected but credentials were invalid.");
 			}
 		}
