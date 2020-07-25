@@ -22,21 +22,22 @@ namespace FileUtil.Core
 
 	public class DuplicateFinder
 	{
+		private static NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
 		private readonly IFileHelpers _fileSystemHelper;
-		private readonly Logger logger;
-		private int hashLimit;
+		//private readonly Logger _logger;
+		private int _hashLimit;
 
 		public DuplicateFinder(IFileHelpers fileSystemHelper)
 		{
-			this._fileSystemHelper = fileSystemHelper;
-			logger = LogManager.GetCurrentClassLogger();
+			_fileSystemHelper = fileSystemHelper;
+			//_logger = LogManager.GetCurrentClassLogger();
 		}
 
 		public ConcurrentDictionary<string, List<File>> FindDuplicateFiles(FindDuplicatesJob job)
 		{
 			string[] filePaths;
 			ConcurrentDictionary<string, List<File>> duplicateDictionary = new ConcurrentDictionary<string, List<File>>();
-			hashLimit = job.Options.HashLimit;
+			_hashLimit = job.Options.HashLimit;
 			if (job.Options.IsLocalFileSystem)
 			{
 				filePaths = GetFilePaths(job);
@@ -48,7 +49,7 @@ namespace FileUtil.Core
 					new UNCAccessWithCredentials.UNCAccessWithCredentials())
 				{
 					if (unc.NetUseWithCredentials(job.Options.Path, job.Options.User, job.Options.Domain, job.Options.Pass)
-						|| unc.LastError == 1219) // Already connected
+					    || unc.LastError == 1219) // Already connected
 					{
 						filePaths = GetFilePaths(job);
 						PopulateFileMetaData(filePaths, duplicateDictionary);
@@ -56,31 +57,31 @@ namespace FileUtil.Core
 					}
 					else
 					{
-						logger.Error($"Failed to connect to UNC location. Error: {unc.LastError}.");
+						_logger.Error($"Failed to connect to UNC location. Error: {unc.LastError}.");
 						//Console.WriteLine($"Failed to connect to UNC location. Error: {unc.LastError}.");
 						switch (unc.LastError)
 						{
 							case 1326:
-								logger.Error("Login failure: The user name or password is incorrect.");
+								_logger.Error("Login failure: The user name or password is incorrect.");
 								break;
 							case 86:
-								logger.Error("Access denied: The specified network password is not correct.");
+								_logger.Error("Access denied: The specified network password is not correct.");
 								break;
 							case 87:
-								logger.Error("Invalid parameter.");
+								_logger.Error("Invalid parameter.");
 								break;
 							case 1219:
-								logger.Error("Multiple connections to server.");
+								_logger.Error("Multiple connections to server.");
 								unc.Dispose();
 								break;
 							case 53:
-								logger.Error("Network path not found.");
+								_logger.Error("Network path not found.");
 								break;
 							case 5:
-								logger.Error("Access denied.");
+								_logger.Error("Access denied.");
 								break;
 							default:
-								logger.Error($"Unknown error. {unc.LastError}");
+								_logger.Error($"Unknown error. {unc.LastError}");
 								break;
 						}
 						Console.ReadKey();
@@ -94,15 +95,15 @@ namespace FileUtil.Core
 		public string[] GetFilePaths(FindDuplicatesJob job)
 		{
 			//Since we don't yet know how many files will be found, progress reporting is not trivial.
-			logger.Debug($"Traversing {job.Path}...");
+			_logger.Debug($"Traversing {job.Path}...");
 			string[] files = _fileSystemHelper.WalkFilePaths(job);
-			logger.Debug("...done.");
+			_logger.Debug("...done.");
 			return files;
 		}
 
 		internal ConcurrentDictionary<string, List<File>> PopulateFileMetaData(string[] files, ConcurrentDictionary<string, List<File>> duplicateDictionary)
 		{
-			logger.Debug("Populating metadata for discovered files...");
+			_logger.Debug("Populating metadata for discovered files...");
 
 			bool isInConsole = IsConsoleApplication();
 
@@ -147,7 +148,7 @@ namespace FileUtil.Core
 						Filename = _fileSystemHelper.GetFileName(filePath),
 						SizeInKiloBytes = fileSize,
 						//todo: add option to hash only a portion of the file AND / OR check the files table. if the filename && size && path are the same as an entry in the files table, don't bother hashing (optionally) - just use the value from the table
-						Hash = _fileSystemHelper.GetHashedValue(filePath, fileSize, hashLimit)
+						Hash = _fileSystemHelper.GetHashedValue(filePath, fileSize, _hashLimit)
 					};
 
 					//Ignore empty directory placeholder
@@ -160,7 +161,7 @@ namespace FileUtil.Core
 				}
 				i++;
 			}
-			logger.Debug("\n...done.");
+			_logger.Debug("\n...done.");
 			return duplicateDictionary;
 		}
 
@@ -185,7 +186,7 @@ namespace FileUtil.Core
 
 			string pwd = Path.GetFullPath(@".\");
 			string outputFileName = $"Duplicates_{DateTime.UtcNow.Month}.{DateTime.UtcNow.Day}.{DateTime.UtcNow.Year}-{DateTime.UtcNow.Hour}_{DateTime.UtcNow.Minute}";
-			logger.Debug($"Writing report file to {pwd + outputFileName}.txt"); //todo: make configurable);
+			_logger.Debug($"Writing report file to {pwd + outputFileName}.txt"); //todo: make configurable);
 			System.IO.File.WriteAllText(pwd + outputFileName + ".txt", sb.ToString());
 		}
 
@@ -193,7 +194,7 @@ namespace FileUtil.Core
 		{
 			if (!job.Options.IsLocalFileSystem && (String.IsNullOrEmpty(job.Options.User) || String.IsNullOrEmpty(job.Options.Pass)))
 			{
-				logger.Error("Remote Filesystem selected but credentials were invalid.");
+				_logger.Error("Remote Filesystem selected but credentials were invalid.");
 				throw new ArgumentException("Remote Filesystem selected but credentials were invalid.");
 			}
 		}

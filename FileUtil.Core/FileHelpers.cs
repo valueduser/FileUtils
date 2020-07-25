@@ -17,6 +17,7 @@ namespace FileUtil.Core
 
 	public class FileHelpers : IFileHelpers
 	{
+		private static NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
 		private readonly IFileSystem _fileSystem;
 
 		public FileHelpers(IFileSystem fileSystem)
@@ -44,7 +45,7 @@ namespace FileUtil.Core
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine($"Exception encountered getting file name: {ex}");
+				_logger.Error($"Exception encountered getting file name: {ex}");
 				return "UNKNOWN_FILE";
 			}
 		}
@@ -62,7 +63,7 @@ namespace FileUtil.Core
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine($"Exception encountered getting file size: {ex}");
+				_logger.Error($"Exception encountered getting file size: {ex}");
 				return -1;
 			}
 		}
@@ -79,40 +80,30 @@ namespace FileUtil.Core
 				try
 				{
 					byte[] bytes = new byte[hashLimit];
-					using (var fs = _fileSystem.FileStream.Create(filename, FileMode.Open))
-					{
-						fs.Read(bytes, 0, (int) hashLimit);
-						using (var md5 = MD5.Create())
-						{
-							return md5.ComputeHash(bytes);
-						}
-					}
+					using Stream fs = _fileSystem.FileStream.Create(filename, FileMode.Open);
+					fs.Read(bytes, 0, (int) hashLimit);
+					using MD5 md5 = MD5.Create();
+					return md5.ComputeHash(bytes);
 				}
 				catch (Exception ex)
 				{
-					Console.WriteLine($"Error hashing {filename}: {ex}");
+					_logger.Error($"Error hashing first {hashLimit}KB of {filename}: {ex}");
 					return new byte[] { };
 				}
 			}
 			else
 			{
-				//Console.WriteLine($"Hashing {filename}...");
-				using (var md5 = MD5.Create())
+				using MD5 md5 = MD5.Create();
+				try
 				{
-					try
-					{
-						using (var stream = _fileSystem.File.OpenRead(filename))
-						{
-							byte[] retval = md5.ComputeHash(stream);
-							//Console.WriteLine("done.");
-							return retval;
-						}
-					}
-					catch (Exception e)
-					{
-						Console.WriteLine($"Error hashing {filename}: {e}");
-						return new byte[] { };
-					}
+					using Stream stream = _fileSystem.File.OpenRead(filename);
+					byte[] retval = md5.ComputeHash(stream);
+					return retval;
+				}
+				catch (Exception e)
+				{
+					_logger.Error($"Error hashing {filename}: {e}");
+					return new byte[] { };
 				}
 			}
 		}
@@ -120,8 +111,7 @@ namespace FileUtil.Core
 		public string[] WalkFilePaths(FindDuplicatesJob job)
 		{
 
-			//Console.WriteLine("Walking file system paths...");
-			string[] fileSystemList = new string[] { };
+			string[] fileSystemList;
 
 			try
 			{
@@ -129,11 +119,11 @@ namespace FileUtil.Core
 			}
 			catch (Exception e)
 			{
-				Console.WriteLine($"Exception encountered walking the file tree: {e}");
+				_logger.Error($"Exception encountered walking the file tree: {e}");
 				throw;
 			}
 			int filesFound = fileSystemList.Length;
-			Console.WriteLine($"Found {filesFound} files.");
+			_logger.Debug($"Found {filesFound} files.");
 
 			return fileSystemList;
 		}
