@@ -22,7 +22,7 @@ namespace FileUtil.Core
 
 	public class DuplicateFinder
 	{
-		private static NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
+		private static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
 		private readonly IFileHelpers _fileSystemHelper;
 		//private readonly Logger _logger;
 		private int _hashLimit;
@@ -45,47 +45,44 @@ namespace FileUtil.Core
 			}
 			else
 			{
-				using (UNCAccessWithCredentials.UNCAccessWithCredentials unc =
-					new UNCAccessWithCredentials.UNCAccessWithCredentials())
+				using UNCAccessWithCredentials.UNCAccessWithCredentials unc =
+					new UNCAccessWithCredentials.UNCAccessWithCredentials();
+				if (unc.NetUseWithCredentials(job.Options.Path, job.Options.User, job.Options.Domain, job.Options.Pass)
+					|| unc.LastError == 1219) // Already connected
 				{
-					if (unc.NetUseWithCredentials(job.Options.Path, job.Options.User, job.Options.Domain, job.Options.Pass)
-					    || unc.LastError == 1219) // Already connected
+					filePaths = GetFilePaths(job);
+					PopulateFileMetaData(filePaths, duplicateDictionary);
+
+				}
+				else
+				{
+					Logger.Error($"Failed to connect to UNC location. Error: {unc.LastError}.");
+					switch (unc.LastError)
 					{
-						filePaths = GetFilePaths(job);
-						PopulateFileMetaData(filePaths, duplicateDictionary);
-						
+						case 1326:
+							Logger.Error("Login failure: The user name or password is incorrect.");
+							break;
+						case 86:
+							Logger.Error("Access denied: The specified network password is not correct.");
+							break;
+						case 87:
+							Logger.Error("Invalid parameter.");
+							break;
+						case 1219:
+							Logger.Error("Multiple connections to server.");
+							unc.Dispose();
+							break;
+						case 53:
+							Logger.Error("Network path not found.");
+							break;
+						case 5:
+							Logger.Error("Access denied.");
+							break;
+						default:
+							Logger.Error($"Unknown error. {unc.LastError}");
+							break;
 					}
-					else
-					{
-						_logger.Error($"Failed to connect to UNC location. Error: {unc.LastError}.");
-						//Console.WriteLine($"Failed to connect to UNC location. Error: {unc.LastError}.");
-						switch (unc.LastError)
-						{
-							case 1326:
-								_logger.Error("Login failure: The user name or password is incorrect.");
-								break;
-							case 86:
-								_logger.Error("Access denied: The specified network password is not correct.");
-								break;
-							case 87:
-								_logger.Error("Invalid parameter.");
-								break;
-							case 1219:
-								_logger.Error("Multiple connections to server.");
-								unc.Dispose();
-								break;
-							case 53:
-								_logger.Error("Network path not found.");
-								break;
-							case 5:
-								_logger.Error("Access denied.");
-								break;
-							default:
-								_logger.Error($"Unknown error. {unc.LastError}");
-								break;
-						}
-						Console.ReadKey();
-					}
+					Console.ReadKey();
 				}
 			}
 
@@ -95,15 +92,15 @@ namespace FileUtil.Core
 		public string[] GetFilePaths(FindDuplicatesJob job)
 		{
 			//Since we don't yet know how many files will be found, progress reporting is not trivial.
-			_logger.Debug($"Traversing {job.Path}...");
+			Logger.Debug($"Traversing {job.Path}...");
 			string[] files = _fileSystemHelper.WalkFilePaths(job);
-			_logger.Debug("...done.");
+			Logger.Debug("...done.");
 			return files;
 		}
 
 		internal ConcurrentDictionary<string, List<File>> PopulateFileMetaData(string[] files, ConcurrentDictionary<string, List<File>> duplicateDictionary)
 		{
-			_logger.Debug("Populating metadata for discovered files...");
+			Logger.Debug("Populating metadata for discovered files...");
 
 			bool isInConsole = IsConsoleApplication();
 
@@ -139,7 +136,7 @@ namespace FileUtil.Core
 					}
 				}
 
-				if (!String.IsNullOrEmpty(filePath))
+				if (!string.IsNullOrEmpty(filePath))
 				{
 					long fileSize = _fileSystemHelper.GetFileSize(filePath);
 					File tempFile = new File
@@ -161,7 +158,7 @@ namespace FileUtil.Core
 				}
 				i++;
 			}
-			_logger.Debug("\n...done.");
+			Logger.Debug("\n...done.");
 			return duplicateDictionary;
 		}
 
@@ -170,14 +167,14 @@ namespace FileUtil.Core
 			StringBuilder sb = new StringBuilder();
 			sb.Append("========= DUPLICATE FILE RESULTS =========\n\n");
 
-			foreach(var entry in duplicateDictionary)
+			foreach(var (key, value) in duplicateDictionary)
 			{
 				//Skip hashes without duplicates
-				if(entry.Value.Count == 1) continue;
+				if(value.Count == 1) continue;
 
-				sb.Append($"MD5 Hash: {entry.Key} is shared by the following files: \n");
+				sb.Append($"MD5 Hash: {key} is shared by the following files: \n");
 
-				foreach(File file in entry.Value)
+				foreach(File file in value)
 				{
 					sb.Append($"\t{file.FullPath,-10}\t({file.SizeInKiloBytes} KB)\n");
 				}
@@ -186,17 +183,16 @@ namespace FileUtil.Core
 
 			string pwd = Path.GetFullPath(@".\");
 			string outputFileName = $"Duplicates_{DateTime.UtcNow.Month}.{DateTime.UtcNow.Day}.{DateTime.UtcNow.Year}-{DateTime.UtcNow.Hour}_{DateTime.UtcNow.Minute}";
-			_logger.Debug($"Writing report file to {pwd + outputFileName}.txt"); //todo: make configurable);
+			Logger.Debug($"Writing report file to {pwd + outputFileName}.txt"); //todo: make configurable);
 			System.IO.File.WriteAllText(pwd + outputFileName + ".txt", sb.ToString());
 		}
 
 		public void ValidateJob(FindDuplicatesJob job)
 		{
-			if (!job.Options.IsLocalFileSystem && (String.IsNullOrEmpty(job.Options.User) || String.IsNullOrEmpty(job.Options.Pass)))
-			{
-				_logger.Error("Remote Filesystem selected but credentials were invalid.");
-				throw new ArgumentException("Remote Filesystem selected but credentials were invalid.");
-			}
+			if (job.Options.IsLocalFileSystem ||
+			    (!string.IsNullOrEmpty(job.Options.User) && !string.IsNullOrEmpty(job.Options.Pass))) return;
+			Logger.Error("Remote Filesystem selected but credentials were invalid.");
+			throw new ArgumentException("Remote Filesystem selected but credentials were invalid.");
 		}
 
 		// Konsole requires a real Console to work https://github.com/goblinfactory/konsole/issues/58

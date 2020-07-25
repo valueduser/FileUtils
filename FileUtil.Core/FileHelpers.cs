@@ -17,7 +17,7 @@ namespace FileUtil.Core
 
 	public class FileHelpers : IFileHelpers
 	{
-		private static NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
+		private static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
 		private readonly IFileSystem _fileSystem;
 
 		public FileHelpers(IFileSystem fileSystem)
@@ -45,7 +45,7 @@ namespace FileUtil.Core
 			}
 			catch (Exception ex)
 			{
-				_logger.Error($"Exception encountered getting file name: {ex}");
+				Logger.Error($"Exception encountered getting file name: {ex}");
 				return "UNKNOWN_FILE";
 			}
 		}
@@ -63,7 +63,7 @@ namespace FileUtil.Core
 			}
 			catch (Exception ex)
 			{
-				_logger.Error($"Exception encountered getting file size: {ex}");
+				Logger.Error($"Exception encountered getting file size: {ex}");
 				return -1;
 			}
 		}
@@ -87,7 +87,7 @@ namespace FileUtil.Core
 				}
 				catch (Exception ex)
 				{
-					_logger.Error($"Error hashing first {hashLimit}KB of {filename}: {ex}");
+					Logger.Error($"Error hashing first {hashLimit}KB of {filename}: {ex}");
 					return new byte[] { };
 				}
 			}
@@ -102,7 +102,7 @@ namespace FileUtil.Core
 				}
 				catch (Exception e)
 				{
-					_logger.Error($"Error hashing {filename}: {e}");
+					Logger.Error($"Error hashing {filename}: {e}");
 					return new byte[] { };
 				}
 			}
@@ -119,11 +119,11 @@ namespace FileUtil.Core
 			}
 			catch (Exception e)
 			{
-				_logger.Error($"Exception encountered walking the file tree: {e}");
+				Logger.Error($"Exception encountered walking the file tree: {e}");
 				throw;
 			}
 			int filesFound = fileSystemList.Length;
-			_logger.Debug($"Found {filesFound} files.");
+			Logger.Debug($"Found {filesFound} files.");
 
 			return fileSystemList;
 		}
