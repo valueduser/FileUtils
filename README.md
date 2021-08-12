@@ -1,5 +1,5 @@
 # FileUtils
-[![Build Status](https://travis-ci.com/valueduser/FileUtils.svg?branch=master)](https://travis-ci.org/valueduser/FileUtils)
+[![Build Status](https://travis-ci.com/valueduser/FileUtils.svg?branch=master)](https://travis-ci.com/valueduser/FileUtils)
 ### Todo:
 - Option to hash only the first x bytes of large files
 - Multithreading support
