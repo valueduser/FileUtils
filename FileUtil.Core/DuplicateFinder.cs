@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
 using System.Text;
 using FileUtil.Models;
 using Konsole;
@@ -42,47 +43,53 @@ namespace FileUtil.Core
 			}
 			else
 			{
-				using (UNCAccessWithCredentials.UNCAccessWithCredentials unc =
-					new UNCAccessWithCredentials.UNCAccessWithCredentials())
-				{
-					if (unc.NetUseWithCredentials(job.Options.Path, job.Options.User, job.Options.Domain, job.Options.Pass)
-						|| unc.LastError == 1219) // Already connected
-					{
-						filePaths = GetFilePaths(job);
-						PopulateFileMetaData(filePaths, duplicateDictionary);
+				NetworkCredential networkCred = new NetworkCredential(job.Options.User, job.Options.Pass, job.Options.Domain);
+				CredentialCache netCache = new CredentialCache();
+				netCache.Add(new System.Uri(job.Options.Path), "Basic", networkCred);
+				filePaths = GetFilePaths(job);
+				PopulateFileMetaData(filePaths, duplicateDictionary);
+
+				//using (UNCAccessWithCredentials.UNCAccessWithCredentials unc =
+				//	new UNCAccessWithCredentials.UNCAccessWithCredentials())
+				//{
+				//	if (unc.NetUseWithCredentials(job.Options.Path, job.Options.User, job.Options.Domain, job.Options.Pass)
+				//		|| unc.LastError == 1219) // Already connected
+				//	{
+				//		filePaths = GetFilePaths(job);
+				//		PopulateFileMetaData(filePaths, duplicateDictionary);
 						
-					}
-					else
-					{
-						Console.WriteLine($"Failed to connect to UNC location. Error: {unc.LastError}.");
-						switch (unc.LastError)
-						{
-							case 1326:
-								Console.WriteLine("Login failure: The user name or password is incorrect.");
-								break;
-							case 86:
-								Console.WriteLine("Access denied: The specified network password is not correct.");
-								break;
-							case 87:
-								Console.WriteLine("Invalid parameter.");
-								break;
-							case 1219:
-								Console.WriteLine("Multiple connections to server.");
-								unc.Dispose();
-								break;
-							case 53:
-								Console.WriteLine("Network path not found.");
-								break;
-							case 5:
-								Console.WriteLine("Access denied.");
-								break;
-							default:
-								Console.WriteLine($"Unknown error. {unc.LastError}");
-								break;
-						}
-						Console.ReadKey();
-					}
-				}
+				//	}
+				//	else
+				//	{
+				//		Console.WriteLine($"Failed to connect to UNC location. Error: {unc.LastError}.");
+				//		switch (unc.LastError)
+				//		{
+				//			case 1326:
+				//				Console.WriteLine("Login failure: The user name or password is incorrect.");
+				//				break;
+				//			case 86:
+				//				Console.WriteLine("Access denied: The specified network password is not correct.");
+				//				break;
+				//			case 87:
+				//				Console.WriteLine("Invalid parameter.");
+				//				break;
+				//			case 1219:
+				//				Console.WriteLine("Multiple connections to server.");
+				//				unc.Dispose();
+				//				break;
+				//			case 53:
+				//				Console.WriteLine("Network path not found.");
+				//				break;
+				//			case 5:
+				//				Console.WriteLine("Access denied.");
+				//				break;
+				//			default:
+				//				Console.WriteLine($"Unknown error. {unc.LastError}");
+				//				break;
+				//		}
+				//		Console.ReadKey();
+				//	}
+				//}
 			}
 
 			return duplicateDictionary;
