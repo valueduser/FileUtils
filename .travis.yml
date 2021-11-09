@@ -1,6 +1,6 @@
 language: csharp
 solution: FileUtils.sln
-dotnet: 6.0.0
+dotnet: 6.0.100
 script:
  - dotnet restore
  - dotnet build
