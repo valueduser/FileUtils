@@ -1,17 +1,19 @@
 ﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FileUtil.Models
 {
 	public class File
 	{
+		[Key]
 		public int Id { get; set; }
 		public string Name { get; set; }
 		public string Path { get; set; }
 		public long SizeInKiloBytes { get; set; }
-		public Hash Hash { get; set; } // TODO: Remove?
-		
-		public string HashId { get; set; }
 		public string Source { get; set; }
+		public int HashId { get; set; }
+		public Hash Hash { get; set; }
 
 		public override bool Equals(object obj)
 		{
@@ -24,8 +26,9 @@ namespace FileUtil.Models
 
 			if (!Name.Equals(objresult.Name) ||
 			    !Path.Equals(objresult.Path) ||
-			    !SizeInKiloBytes.Equals(objresult.SizeInKiloBytes) ||
-			    !Hash.Equals(objresult.Hash))
+			    !SizeInKiloBytes.Equals(objresult.SizeInKiloBytes)
+				//|| !Hash.Equals(objresult.Hash)
+				)
 			{
 				return false;
 			}

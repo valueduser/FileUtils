@@ -7,6 +7,8 @@ using System.Text;
 using FileUtil.Models;
 using Konsole;
 using File = FileUtil.Models.File;
+using FileUtil.Data.Data;
+using System.Linq;
 
 namespace FileUtil.Core
 {
@@ -42,7 +44,7 @@ namespace FileUtil.Core
 				if (source.IsLocalFileSystem)
 				{
 					filePaths = GetFilePaths(source);
-					PopulateFileMetaData(filePaths, duplicateDictionary);
+					PopulateFileMetaData(source.Name, filePaths, duplicateDictionary);
 				}
 				else
 				{
@@ -50,7 +52,7 @@ namespace FileUtil.Core
 					CredentialCache netCache = new CredentialCache();
 					netCache.Add(new System.Uri(source.Path), "Basic", networkCred);
 					filePaths = GetFilePaths(source);
-					PopulateFileMetaData(filePaths, duplicateDictionary);
+					PopulateFileMetaData(source.Name, filePaths, duplicateDictionary);
 				}
 			}
 			return duplicateDictionary;
@@ -65,7 +67,7 @@ namespace FileUtil.Core
 			return files;
 		}
 
-		internal ConcurrentDictionary<string, List<File>> PopulateFileMetaData(string[] files, ConcurrentDictionary<string, List<File>> duplicateDictionary)
+		internal ConcurrentDictionary<string, List<File>> PopulateFileMetaData(string sourceName, string[] files, ConcurrentDictionary<string, List<File>> duplicateDictionary)
 		{
 			Console.WriteLine("Populating metadata for discovered files...");
 
@@ -105,15 +107,44 @@ namespace FileUtil.Core
 
 				if (!String.IsNullOrEmpty(filePath))
 				{
+					using FileUtilContext context = new FileUtilContext();
+
 					long fileSize = _fileSystemHelper.GetFileSize(filePath);
 					File tempFile = new File
 					{
 						Path = filePath,
 						Name = _fileSystemHelper.GetFileName(filePath),
 						SizeInKiloBytes = fileSize,
-						//todo: add option to hash only a portion of the file AND / OR check the files table. if the filename && size && path are the same as an entry in the files table, don't bother hashing (optionally) - just use the value from the table
-						Hash = _fileSystemHelper.GetHashedValue(filePath, fileSize, hashLimit)
+						Source = sourceName
 					};
+
+					var hashValue = _fileSystemHelper.GetHashedValue(filePath, fileSize, hashLimit);
+
+					var existingHash = context.Hash
+						.Where(h => h.Value == hashValue && h.IsPartial == hashLimit > 0)
+						.FirstOrDefault();
+					Hash tempHash = null;
+
+					if (existingHash != null)
+					{
+						existingHash.ModifiedOn = DateTime.UtcNow;
+						existingHash.HasDuplicate = true;
+						tempFile.Hash = existingHash;
+					} else
+					{
+						tempHash = new Hash
+						{
+							//todo: add option to hash only a portion of the file AND / OR check the files table. if the filename && size && path are the same as an entry in the files table, don't bother hashing (optionally) - just use the value from the table
+							Value = hashValue,
+							IsPartial = hashLimit > 0,
+							HasDuplicate = false,
+							CreatedOn = DateTime.UtcNow
+						};
+						tempFile.Hash = tempHash;
+					}
+					context.File.Add(tempFile);
+
+					context.SaveChanges();
 
 					//Ignore empty directory placeholder
 					if (tempFile.Name == "_._")

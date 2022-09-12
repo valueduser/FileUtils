@@ -1,17 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace FileUtil.Models
 {
 	public class Hash
 	{
+		[Key]
 		public int Id { get; set; }
 		public string Value { get; set; }
 		public bool IsPartial { get; set; }
+		public bool HasDuplicate { get; set; }
 		public DateTime CreatedOn { get; set; }
 		public DateTime? ModifiedOn { get; set; }
-		public List<File> Files { get; set; }
-
+		
+		public ICollection<File> Files { get; set; }
+		
 		public override int GetHashCode() => base.GetHashCode();
 
 		public override bool Equals(object obj)

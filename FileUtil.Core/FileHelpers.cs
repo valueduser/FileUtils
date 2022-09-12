@@ -12,7 +12,7 @@ namespace FileUtil.Core
 		string GetFileName(string pathToFile);
 		long GetFileSize(string pathToFile);
 		string[] WalkFilePaths(Source source);
-		Hash GetHashedValue(string pathToFile, long fileSize, long hashLimit = 0);
+		string GetHashedValue(string pathToFile, long fileSize, long hashLimit = 0);
 	}
 
 	public class FileHelpers : IFileHelpers
@@ -67,14 +67,9 @@ namespace FileUtil.Core
 			}
 		}
 
-		public Hash GetHashedValue(string pathToFile, long fileSize, long hashLimit = 0)
+		public string GetHashedValue(string pathToFile, long fileSize, long hashLimit = 0)
 		{
-			return new Hash()
-			{
-				Value = ToHex(HashFile(pathToFile, fileSize, hashLimit)),
-				IsPartial = hashLimit > 0,
-				CreatedOn = DateTime.Now
-			};
+			return ToHex(HashFile(pathToFile, fileSize, hashLimit));
 		}
 
 		private byte[] HashFile(string filename, long filesize, long hashLimit = 0)
