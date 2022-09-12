@@ -13,5 +13,4 @@
         public bool IsLocalFileSystem;
         public string DBConnectionString;
     }
-
 }

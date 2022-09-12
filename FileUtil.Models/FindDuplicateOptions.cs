@@ -1,8 +1,14 @@
 ﻿using System;
 using System.Collections.Specialized;
+using Microsoft.Extensions.Configuration;
 
 namespace FileUtil.Models
 {
+	public FindDuplicateOptions(IConfiguration configuration)
+	{
+		Configuration = configuration;
+	}
+
 	public class FindDuplicateOptions
 	{
 		public Source[] Sources { get; set; }
@@ -30,6 +36,8 @@ namespace FileUtil.Models
 
 		public FindDuplicateOptions(NameValueCollection appSettings)
 		{
+      string config = this.Config["appsettings"];  
+
 			Boolean.TryParse(appSettings["isLocalFileSystem"], out bool isLocalFileSystem);
 			IsLocalFileSystem = isLocalFileSystem;
 
