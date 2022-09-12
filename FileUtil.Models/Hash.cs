@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace FileUtil.Models
 {
@@ -9,6 +10,7 @@ namespace FileUtil.Models
 		public bool IsPartial { get; set; }
 		public DateTime CreatedOn { get; set; }
 		public DateTime? ModifiedOn { get; set; }
+		public List<File> Files { get; set; }
 
 		public override int GetHashCode() => base.GetHashCode();
 

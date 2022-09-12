@@ -11,3 +11,6 @@
 - Output file written to a user specified directory
 
 docker-compose -f docker-compose-postgres-db.yml up
+
+Add-Migration InitialCreate
+Update-Database
