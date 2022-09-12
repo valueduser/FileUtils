@@ -35,71 +35,32 @@ namespace FileUtil.Core
 		{
 			string[] filePaths;
 			ConcurrentDictionary<string, List<File>> duplicateDictionary = new ConcurrentDictionary<string, List<File>>();
-			hashLimit = job.Options.HashLimit;
-			if (job.Options.IsLocalFileSystem)
-			{
-				filePaths = GetFilePaths(job);
-				PopulateFileMetaData(filePaths, duplicateDictionary);
-			}
-			else
-			{
-				NetworkCredential networkCred = new NetworkCredential(job.Options.User, job.Options.Pass, job.Options.Domain);
-				CredentialCache netCache = new CredentialCache();
-				netCache.Add(new System.Uri(job.Options.Path), "Basic", networkCred);
-				filePaths = GetFilePaths(job);
-				PopulateFileMetaData(filePaths, duplicateDictionary);
+			hashLimit = job.Options.Config.HashSizeLimitInKB;
 
-				//using (UNCAccessWithCredentials.UNCAccessWithCredentials unc =
-				//	new UNCAccessWithCredentials.UNCAccessWithCredentials())
-				//{
-				//	if (unc.NetUseWithCredentials(job.Options.Path, job.Options.User, job.Options.Domain, job.Options.Pass)
-				//		|| unc.LastError == 1219) // Already connected
-				//	{
-				//		filePaths = GetFilePaths(job);
-				//		PopulateFileMetaData(filePaths, duplicateDictionary);
-						
-				//	}
-				//	else
-				//	{
-				//		Console.WriteLine($"Failed to connect to UNC location. Error: {unc.LastError}.");
-				//		switch (unc.LastError)
-				//		{
-				//			case 1326:
-				//				Console.WriteLine("Login failure: The user name or password is incorrect.");
-				//				break;
-				//			case 86:
-				//				Console.WriteLine("Access denied: The specified network password is not correct.");
-				//				break;
-				//			case 87:
-				//				Console.WriteLine("Invalid parameter.");
-				//				break;
-				//			case 1219:
-				//				Console.WriteLine("Multiple connections to server.");
-				//				unc.Dispose();
-				//				break;
-				//			case 53:
-				//				Console.WriteLine("Network path not found.");
-				//				break;
-				//			case 5:
-				//				Console.WriteLine("Access denied.");
-				//				break;
-				//			default:
-				//				Console.WriteLine($"Unknown error. {unc.LastError}");
-				//				break;
-				//		}
-				//		Console.ReadKey();
-				//	}
-				//}
+			foreach (Source source in job.Options.Sources)
+			{
+				if (source.IsLocalFileSystem)
+				{
+					filePaths = GetFilePaths(source);
+					PopulateFileMetaData(filePaths, duplicateDictionary);
+				}
+				else
+				{
+					NetworkCredential networkCred = new NetworkCredential(source.NetworkShareUser, source.NetworkSharePassword, source.NetworkShareDomain);
+					CredentialCache netCache = new CredentialCache();
+					netCache.Add(new System.Uri(source.Path), "Basic", networkCred);
+					filePaths = GetFilePaths(source);
+					PopulateFileMetaData(filePaths, duplicateDictionary);
+				}
 			}
-
 			return duplicateDictionary;
 		}
 
-		public string[] GetFilePaths(FindDuplicatesJob job)
+		public string[] GetFilePaths(Source source)
 		{
 			//Since we don't yet know how many files will be found, progress reporting is not trivial.
-			Console.WriteLine($"Traversing {job.Path}...");
-			string[] files = _fileSystemHelper.WalkFilePaths(job);
+			Console.WriteLine($"Traversing {source.Path}...");
+			string[] files = _fileSystemHelper.WalkFilePaths(source);
 			Console.WriteLine("...done.");
 			return files;
 		}
@@ -193,12 +154,15 @@ namespace FileUtil.Core
 			System.IO.File.WriteAllText(pwd + outputFileName + ".txt", sb.ToString());
 		}
 
-		public void ValidateJob(FindDuplicatesJob job)
+		public void ValidateJob(List<Source> sources)
 		{
-			if (!job.Options.IsLocalFileSystem && (String.IsNullOrEmpty(job.Options.User) || String.IsNullOrEmpty(job.Options.Pass)))
+			sources.ForEach(delegate (Source source)
 			{
-				throw new ArgumentException("Remote Filesystem selected but credentials were invalid.");
-			}
+				if (!source.IsLocalFileSystem && (String.IsNullOrEmpty(source.NetworkShareUser) || String.IsNullOrEmpty(source.NetworkSharePassword)))
+				{
+					throw new ArgumentException("Remote Filesystem selected but credentials were missing.");
+				}
+			});
 		}
 
 		// Konsole requires a real Console to work https://github.com/goblinfactory/konsole/issues/58

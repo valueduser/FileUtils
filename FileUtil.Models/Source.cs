@@ -7,6 +7,6 @@
 		public string NetworkSharePassword { get; set; }
 		public string NetworkShareDomain { get; set; }
 		public string Path { get; set; }
-		public string IsLocalFileSystem { get; set; }
+		public bool IsLocalFileSystem { get; set; }
 	}
 }

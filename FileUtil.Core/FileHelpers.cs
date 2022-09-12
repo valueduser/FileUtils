@@ -11,7 +11,7 @@ namespace FileUtil.Core
 	{
 		string GetFileName(string pathToFile);
 		long GetFileSize(string pathToFile);
-		string[] WalkFilePaths(FindDuplicatesJob job);
+		string[] WalkFilePaths(Source source);
 		string GetHashedValue(string pathToFile, long fileSize, long hashLimit = 0);
 	}
 
@@ -117,7 +117,7 @@ namespace FileUtil.Core
 			}
 		}
 
-		public string[] WalkFilePaths(FindDuplicatesJob job)
+		public string[] WalkFilePaths(Source source)
 		{
 
 			//Console.WriteLine("Walking file system paths...");
@@ -125,7 +125,7 @@ namespace FileUtil.Core
 
 			try
 			{
-				fileSystemList = _fileSystem.Directory.GetFiles(job.Path, "*.*", System.IO.SearchOption.AllDirectories);
+				fileSystemList = _fileSystem.Directory.GetFiles(source.Path, "*.*", System.IO.SearchOption.AllDirectories);
 			}
 			catch (Exception e)
 			{

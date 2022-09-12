@@ -21,6 +21,9 @@
     <None Update="App.config">
       <SubType>Designer</SubType>
     </None>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

@@ -5,19 +5,11 @@ namespace FileUtil.Models
 {
 	public class FindDuplicatesJob : IJob
 	{
-		public string Path;
 		public FindDuplicateOptions Options;
 
-		public FindDuplicatesJob(NameValueCollection appSettings)
+		public FindDuplicatesJob()
 		{
-			Options = new FindDuplicateOptions(appSettings);
-			Path = Options.Path;
-		}
-
-		public FindDuplicatesJob(FindDuplicateOptions options)
-		{
-			Options = options;
-			Path = options.Path;
+			Options = new FindDuplicateOptions();
 		}
 	}
 }
