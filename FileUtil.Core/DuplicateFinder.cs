@@ -108,20 +108,20 @@ namespace FileUtil.Core
 					long fileSize = _fileSystemHelper.GetFileSize(filePath);
 					File tempFile = new File
 					{
-						FullPath = filePath,
-						Filename = _fileSystemHelper.GetFileName(filePath),
+						Path = filePath,
+						Name = _fileSystemHelper.GetFileName(filePath),
 						SizeInKiloBytes = fileSize,
 						//todo: add option to hash only a portion of the file AND / OR check the files table. if the filename && size && path are the same as an entry in the files table, don't bother hashing (optionally) - just use the value from the table
 						Hash = _fileSystemHelper.GetHashedValue(filePath, fileSize, hashLimit)
 					};
 
 					//Ignore empty directory placeholder
-					if (tempFile.Filename == "_._")
+					if (tempFile.Name == "_._")
 					{
 						continue;
 					}
 
-					duplicateDictionary.AddOrUpdate(tempFile.Hash, new List<File>() { tempFile }, (key, value) => { value.Add(tempFile); return value; });
+					duplicateDictionary.AddOrUpdate(tempFile.Hash.Value, new List<File>() { tempFile }, (key, value) => { value.Add(tempFile); return value; });
 				}
 				i++;
 			}
@@ -143,7 +143,7 @@ namespace FileUtil.Core
 
 				foreach(File file in entry.Value)
 				{
-					sb.Append($"\t{file.FullPath,-10}\t({file.SizeInKiloBytes} KB)\n");
+					sb.Append($"\t{file.Path,-10}\t({file.SizeInKiloBytes} KB)\n");
 				}
 				sb.Append("\n");
 			}

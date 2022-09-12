@@ -5,10 +5,12 @@ namespace FileUtil.Models
 	public class File
 	{
 		public int Id { get; set; }
-		public string Filename { get; set; }
-		public string FullPath { get; set; }
+		public string Name { get; set; }
+		public string Path { get; set; }
 		public long SizeInKiloBytes { get; set; }
-		public string Hash { get; set; }
+		public Hash Hash { get; set; } // TODO: Remove?
+		
+		public string HashId { get; set; }
 		public string Source { get; set; }
 
 		public override bool Equals(object obj)
@@ -20,8 +22,8 @@ namespace FileUtil.Models
 
 			File objresult = (File)obj;
 
-			if (!Filename.Equals(objresult.Filename) ||
-			    !FullPath.Equals(objresult.FullPath) ||
+			if (!Name.Equals(objresult.Name) ||
+			    !Path.Equals(objresult.Path) ||
 			    !SizeInKiloBytes.Equals(objresult.SizeInKiloBytes) ||
 			    !Hash.Equals(objresult.Hash))
 			{
@@ -44,3 +46,15 @@ namespace FileUtil.Models
 		public override int GetHashCode() => base.GetHashCode();
 	}
 }
+/*
+
+
+CREATE TABLE IF NOT EXISTS file (
+    file_id     SERIAL PRIMARY KEY,
+    hash_id     INT, 
+    CONSTRAINT fk_hash FOREIGN KEY(hash_id) REFERENCES hash(hash_id),
+    name        TEXT,
+    path        TEXT,
+    source      TEXT
+);
+ */ 
