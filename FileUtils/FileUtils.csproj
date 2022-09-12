@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -6,11 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Castle.Core" Version="4.4.1" />
-    <PackageReference Include="Castle.Windsor" Version="5.1.1" />
+    <PackageReference Include="Castle.Core" Version="5.1.0" />
+    <PackageReference Include="Castle.Windsor" Version="5.1.2" />
     <PackageReference Include="Goblinfactory.Konsole" Version="6.2.2" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="6.0.0" />
-    <PackageReference Include="System.IO.Abstractions" Version="13.2.47" />
+    <PackageReference Include="System.IO.Abstractions" Version="17.1.1" />
   </ItemGroup>
 
   <ItemGroup>

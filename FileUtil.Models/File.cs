@@ -9,6 +9,7 @@ namespace FileUtil.Models
 		public string FullPath { get; set; }
 		public long SizeInKiloBytes { get; set; }
 		public string Hash { get; set; }
+		public string Source { get; set; }
 
 		public override bool Equals(object obj)
 		{

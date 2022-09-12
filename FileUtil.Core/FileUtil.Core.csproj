@@ -6,7 +6,7 @@
 
   <ItemGroup>
     <PackageReference Include="Goblinfactory.Konsole" Version="6.2.2" />
-    <PackageReference Include="System.IO.Abstractions" Version="13.2.47" />
+    <PackageReference Include="System.IO.Abstractions" Version="17.1.1" />
   </ItemGroup>
 
   <ItemGroup>

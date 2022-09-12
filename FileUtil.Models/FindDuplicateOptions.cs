@@ -5,6 +5,9 @@ namespace FileUtil.Models
 {
 	public class FindDuplicateOptions
 	{
+		public Source[] Sources { get; set; }
+		public Config Config { get; set; }
+
 		public bool IsLocalFileSystem { get; set; }
 		public string User { get; set; }
 		public string Pass { get; set; }
@@ -14,12 +17,15 @@ namespace FileUtil.Models
 
 		public FindDuplicateOptions()
 		{
-			IsLocalFileSystem = true;
-			User = "";
-			Pass = "";
-			Domain = "";
-			Path = "";
-			HashLimit = 0;
+			Sources = new Source[0];
+			Config = new Config();
+			Config.HashSizeLimitInKB = 0;
+			//IsLocalFileSystem = true;
+			//User = "";
+			//Pass = "";
+			//Domain = "";
+			//Path = "";
+			//HashLimit = 0;
 		}
 
 		public FindDuplicateOptions(NameValueCollection appSettings)
